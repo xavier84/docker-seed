@@ -65,11 +65,40 @@ if [[ ! -d "$CONFDIR" ]]; then
 	echo " * Installing Docker-compose"
 	cat <<- EOF >> /root/.profile
 	alias docker-compose='docker run -v "\$(pwd)":"\$(pwd)" \
-       	-v /var/run/docker.sock:/var/run/docker.sock \
-       	-e UID=\$(id -u) -e GID=\$(id -g) \
-       	-w "\$(pwd)" \
-       	-ti --rm xataz/compose:1.8'
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-e UID=\$(id -u) -e GID=\$(id -g) \
+		-w "\$(pwd)" \
+		-ti --rm xataz/compose:1.8'
 	EOF
+
+
+	SEEDUSER=$(whiptail --title "Username" --inputbox \
+		"Please enter a username :" 7 50 3>&1 1>&2 2>&3)
+	PASSWORD=$(whiptail --title "Password" --passwordbox \
+		"Please enter a password :" 7 50 3>&1 1>&2 2>&3)
+
+	useradd -M -s /bin/bash "$SEEDUSER"
+	echo "${SEEDUSER}:${PASSWORD}" | chpasswd
+	mkdir -p /home/"$SEEDUSER"
+	chown -R "$SEEDUSER":"$SEEDUSER" /home/"$SEEDUSER"
+	chown root:"$SEEDUSER" /home/"$SEEDUSER"
+	chmod 755 /home/"$SEEDUSER"
+
+	sed -i "s/Subsystem[[:blank:]]sftp[[:blank:]]\/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp/g;" /etc/ssh/sshd_config
+	sed -i "s/UsePAM/#UsePAM/g;" /etc/ssh/sshd_config
+
+	cat <<- EOF >> /etc/ssh/sshd_config
+	Match User $SEEDUSER
+	ChrootDirectory /home/$SEEDUSER
+	EOF
+
+	service ssh restart
+
+
+	if [[ ! -f "$USERSFILE" ]]; then
+		touch $USERSFILE
+	fi
+
 
 
 
