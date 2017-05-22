@@ -63,11 +63,11 @@ if [[ ! -d "$CONFDIR" ]]; then
 
 
 	echo " * Installing Docker-compose"
-	cat <<- EOF > /root/.profile
-	alias docker-compose='docker run -v "$(pwd)":"$(pwd)" \
+	cat <<- EOF >> /root/.profile
+	alias docker-compose='docker run -v "\$(pwd)":"\$(pwd)" \
        	-v /var/run/docker.sock:/var/run/docker.sock \
-       	-e UID=$(id -u) -e GID=$(id -g) \
-       	-w "$(pwd)" \
+       	-e UID=\$(id -u) -e GID=\$(id -g) \
+       	-w "\$(pwd)" \
        	-ti --rm xataz/compose:1.8'
 	EOF
 
