@@ -1,6 +1,6 @@
 #!/bin/bash -i
 
-#. includes/functions.sh
+. includes/functions.sh
 . includes/variable.sh
 
 
@@ -45,6 +45,7 @@ if [[ ! -d "$CONFDIR" ]]; then
 	tree \
 	openssl \
 	members
+	checking_errors $? installation
 
 	echo "deb https://apt.dockerproject.org/repo debian-jessie main" >> /etc/apt/sources.list
 	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
@@ -55,21 +56,27 @@ if [[ ! -d "$CONFDIR" ]]; then
   	if [ $? != 0 ]; then
 		echo " * Installing Docker"
 		apt-get install -y docker-engine
+		checking_errors $? docker
 	fi
 
 	systemctl start docker
+	checking_errors $? start-docker
 	systemctl enable docker
+	checking_errors $? activation-docker
 
 
 
 	echo " * Installing Docker-compose"
 	cat <<- EOF >> /root/.profile
 	alias docker-compose='docker run -v "\$(pwd)":"\$(pwd)" \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-e UID=\$(id -u) -e GID=\$(id -g) \
-		-w "\$(pwd)" \
-		-ti --rm xataz/compose:1.8'
+-v /var/run/docker.sock:/var/run/docker.sock \
+-e UID=\$(id -u) -e GID=\$(id -g) \
+-w "\$(pwd)" \
+-ti --rm xataz/compose:1.13.0'
 	EOF
+
+	sleep 2
+	source /root/.profile
 
 
 	SEEDUSER=$(whiptail --title "Username" --inputbox \
@@ -77,9 +84,11 @@ if [[ ! -d "$CONFDIR" ]]; then
 	PASSWORD=$(whiptail --title "Password" --passwordbox \
 		"Please enter a password :" 7 50 3>&1 1>&2 2>&3)
 
+	echo -e " ${BWHITE}* Adding $SEEDUSER to the system"
 	useradd -M -s /bin/bash "$SEEDUSER"
+	checking_errors $? ajout-user
 	echo "${SEEDUSER}:${PASSWORD}" | chpasswd
-	mkdir -p /home/"$SEEDUSER"
+	mkdir -p /home/"$SEEDUSER"/{watch,torrents,docker}
 	chown -R "$SEEDUSER":"$SEEDUSER" /home/"$SEEDUSER"
 	chown root:"$SEEDUSER" /home/"$SEEDUSER"
 	chmod 755 /home/"$SEEDUSER"
@@ -93,14 +102,23 @@ if [[ ! -d "$CONFDIR" ]]; then
 	EOF
 
 	service ssh restart
+	checking_errors $? restart-ssh
 
 
 	if [[ ! -f "$USERSFILE" ]]; then
 		touch $USERSFILE
 	fi
 
+	echo $SEEDUSER >> $USERSFILE
 
+	ACTION=$(whiptail --title "Services manager" --checklist \
+	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
+			"1" "Flood-Torrent" OFF \
+			"2" "Sickrage" OFF \
+			"3" "Couchpotato" OFF 3>&1 1>&2 2>&3)
+		echo ""
 
+		echo "$(echo $ACTION | tr -d '"')"
 
 else
 	clear

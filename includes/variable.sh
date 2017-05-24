@@ -14,6 +14,6 @@ NC='\033[0m'
 BASEDIR="/opt/seedbox-compose"
 CONFDIR="/etc/seedboxcompose"
 VERSION=$(cat /etc/debian_version)
-USERSFILE="/etc/seedboxcompose/users"
+USERSFILE="/etc/seedboxcompose/users.txt"
 USERID=$(id -u $SEEDUSER)
 GRPID=$(id -g $SEEDUSER)
