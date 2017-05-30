@@ -1,16 +1,16 @@
-rutorrent-audrey:
+rutorrent-%USER%:
   restart: always
   image: xataz/rtorrent-rutorrent
-  container_name: rutorrent-audrey
+  container_name: rutorrent-%USER%
   environment:
-    - UID=1001
-    - GID=1001
+    - UID=%UID%
+    - GID=%GID%
     - WEBROOT=/
   ports:
-    - 3000:8080
-    - 49184:45000
+    - %PORT%:8080
+    - %PORT1%:45000
   volumes:
-    - /home/audrey/torrents:/data/torrents
-    - /home/audrey/watch:/data/.watch
-    - /home/audrey/dockers/rutorrent/data:/data
-    - /home/audrey/dockers/rutorrent/config:/config
+    - /home/%USER%/torrents:/data/torrents
+    - /home/%USER%/watch:/data/.watch
+    - /home/%USER%/dockers/rutorrent/data:/data
+    - /home/%USER%/dockers/rutorrent/config:/config

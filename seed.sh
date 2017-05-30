@@ -57,26 +57,22 @@ if [[ ! -d "$CONFDIR" ]]; then
 		echo " * Installing Docker"
 		apt-get install -y docker-engine
 		checking_errors $? docker
+		systemctl start docker
+		checking_errors $? start-docker
+		systemctl enable docker
+		checking_errors $? activation-docker
 	fi
 
-	systemctl start docker
-	checking_errors $? start-docker
-	systemctl enable docker
-	checking_errors $? activation-docker
+
 
 
 
 	echo " * Installing Docker-compose"
-	cat <<- EOF >> /root/.profile
-	alias docker-compose='docker run -v "\$(pwd)":"\$(pwd)" \
--v /var/run/docker.sock:/var/run/docker.sock \
--e UID=\$(id -u) -e GID=\$(id -g) \
--w "\$(pwd)" \
--ti --rm xataz/compose:1.13.0'
-	EOF
+	curl -L https://github.com/docker/compose/releases/download/1.13.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+	chmod +x /usr/local/bin/docker-compose
+	checking_errors $? docker-compose
+	docker-compose
 
-	sleep 2
-	source /root/.profile
 
 
 	SEEDUSER=$(whiptail --title "Username" --inputbox \
@@ -88,10 +84,12 @@ if [[ ! -d "$CONFDIR" ]]; then
 	useradd -M -s /bin/bash "$SEEDUSER"
 	checking_errors $? ajout-user
 	echo "${SEEDUSER}:${PASSWORD}" | chpasswd
-	mkdir -p /home/"$SEEDUSER"/{watch,torrents,docker}
+	mkdir -p /home/"$SEEDUSER"/{watch,torrents,dockers}
 	chown -R "$SEEDUSER":"$SEEDUSER" /home/"$SEEDUSER"
 	chown root:"$SEEDUSER" /home/"$SEEDUSER"
 	chmod 755 /home/"$SEEDUSER"
+	USERID=$(id -u $SEEDUSER)
+	GRPID=$(id -g $SEEDUSER)
 
 	sed -i "s/Subsystem[[:blank:]]sftp[[:blank:]]\/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp/g;" /etc/ssh/sshd_config
 	sed -i "s/UsePAM/#UsePAM/g;" /etc/ssh/sshd_config
@@ -105,11 +103,14 @@ if [[ ! -d "$CONFDIR" ]]; then
 	checking_errors $? restart-ssh
 
 
-	if [[ ! -f "$USERSFILE" ]]; then
-		touch $USERSFILE
+	if [[ ! -f "$USERSFILE"/users.txt ]]; then
+		echo "$SEEDUSER" >> "$USERSFILE"/users.txt
+	fi
+	if [[ ! -f "$USERSFILE"/ports.txt ]]; then
+		echo "5050" >> "$USERSFILE"/ports.txt
+		PORT="5050"
 	fi
 
-	echo $SEEDUSER >> $USERSFILE
 
 	ACTION=$(whiptail --title "Services manager" --checklist \
 	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
@@ -118,7 +119,35 @@ if [[ ! -d "$CONFDIR" ]]; then
 			"3" "Couchpotato" OFF 3>&1 1>&2 2>&3)
 		echo ""
 
-		echo "$(echo $ACTION | tr -d '"')"
+		ACTION="$(echo $ACTION | tr -d '"')"
+
+	for APP in $(echo $ACTION)
+	do
+		case $APP in
+			1)
+				echo -e " ${BWHITE}* RuTorrent${NC}"
+				cp -Rf "$BASEDIRDOCKER"/rutorrent /home/"$SEEDUSER"/dockers
+				calcul_port 5050 45000
+				echo "$PORT" >> "$USERSFILE"/ports.txt
+				sed_docker /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml >> /home/"$SEEDUSER"/dockers/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				;;
+			2)
+				echo -e " ${BWHITE}* Sickrage${NC}"
+				cp -Rf "$BASEDIRDOCKER"/sickrage /home/"$SEEDUSER"/dockers
+				calcul_port 5050
+				echo "$PORT" >> "$USERSFILE"/ports.txt
+				sed_docker /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml >> /home/"$SEEDUSER"/dockers/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				;;
+			3)
+				echo -e " ${BWHITE}* Couchpotato${NC}"
+				;;
+
+		esac
+	done
 
 else
 	clear
