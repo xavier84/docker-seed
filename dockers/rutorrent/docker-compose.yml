@@ -1,16 +1,16 @@
-rutorrent-%USER%:
-  restart: always
-  image: xataz/rtorrent-rutorrent
-  container_name: rutorrent-%USER%
-  environment:
-    - UID=%UID%
-    - GID=%GID%
-    - WEBROOT=/
-  ports:
-    - %PORT%:8080
-    - %PORT1%:45000
-  volumes:
-    - /home/%USER%/torrents:/data/torrents
-    - /home/%USER%/watch:/data/.watch
-    - /home/%USER%/dockers/rutorrent/data:/data
-    - /home/%USER%/dockers/rutorrent/config:/config
+  rutorrent-%USER%:
+    restart: always
+    image: xataz/rtorrent-rutorrent
+    container_name: rutorrent-%USER%
+    environment:
+      - UID=%UID%
+      - GID=%GID%
+      - WEBROOT=/
+    ports:
+      - %PORT%:8080
+      - %PORT1%:45000
+    volumes:
+      - /home/%USER%/torrents:/data/torrents
+      - /home/%USER%/watch:/data/.watch
+      - /home/%USER%/dockers/rutorrent/data:/data
+      - /home/%USER%/dockers/rutorrent/config:/config

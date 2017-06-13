@@ -27,3 +27,10 @@ calcul_port () {
 	PORT1=$(( $(($2))+HISTO ))
 }
 
+checking_vhost() {
+	if [[ ! -f /etc/seedbox-compose/nginx/conf/"$1" ]]; then
+		echo -e "	${GREEN}--> Operation "$2" success !${NC}"
+	else
+		echo -e "	${RED}--> Operation "$2" failed !${NC}"
+	fi
+}

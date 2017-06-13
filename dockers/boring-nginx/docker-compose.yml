@@ -1,0 +1,22 @@
+version: '3'
+
+networks:
+  default:
+    driver: bridge
+
+
+services:
+  nginx:
+    image: wonderfall/boring-nginx
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:8000"
+      - "443:4430"
+    volumes:
+      - /etc/seedbox-compose/nginx/sites-enabled:/sites-enabled
+      - /etc/seedbox-compose/nginx/conf:/conf.d
+      - /etc/seedbox-compose/nginx/log:/var/log/nginx
+      - /etc/seedbox-compose/nginx/certs:/certs
+      - /etc/seedbox-compose/nginx/passwds:/passwds
+      - /etc/seedbox-compose/nginx/www:/www

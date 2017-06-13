@@ -103,23 +103,34 @@ if [[ ! -d "$CONFDIR" ]]; then
 	checking_errors $? restart-ssh
 
 
-	if [[ ! -f "$USERSFILE"/users.txt ]]; then
-		echo "$SEEDUSER" >> "$USERSFILE"/users.txt
+	if [[ ! -f "$CONFDIR"/users.txt ]]; then
+		echo "$SEEDUSER" >> "$CONFDIR"/users.txt
 	fi
-	if [[ ! -f "$USERSFILE"/ports.txt ]]; then
-		echo "5050" >> "$USERSFILE"/ports.txt
+	if [[ ! -f "$CONFDIR"/ports.txt ]]; then
+		echo "5050" >> "$CONFDIR"/ports.txt
 		PORT="5050"
 	fi
 
 
 	ACTION=$(whiptail --title "Services manager" --checklist \
 	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
-			"1" "Flood-Torrent" OFF \
+			"1" "RuTorrent" OFF \
 			"2" "Sickrage" OFF \
-			"3" "Couchpotato" OFF 3>&1 1>&2 2>&3)
+			"3" "Couchpotato" OFF \
+			"4" "Portainer" OFF 3>&1 1>&2 2>&3)
 		echo ""
 
 		ACTION="$(echo $ACTION | tr -d '"')"
+
+
+		cp "$BASEDIRDOCKER"/boring-nginx/docker-compose.yml "$CONFDIR"
+		mkdir "$CONFDIR"/nginx/{sites-enabled,conf,log,certs,passwds,www}
+		cp "$BASEDIRDOCKER"/boring-nginx/seedbox.conf "$CONFDIR"/nginx/sites-enabled/seedbox.conf
+
+		htpasswd -bs "$CONFDIR"/nginx/passwds/seed.htpasswd "$SEEDUSER" "${PASSWORD}"
+		chmod 640 "$CONFDIR"/nginx/passwds/*
+
+
 
 	for APP in $(echo $ACTION)
 	do
@@ -128,22 +139,37 @@ if [[ ! -d "$CONFDIR" ]]; then
 				echo -e " ${BWHITE}* RuTorrent${NC}"
 				cp -Rf "$BASEDIRDOCKER"/rutorrent /home/"$SEEDUSER"/dockers
 				calcul_port 5050 45000
-				echo "$PORT" >> "$USERSFILE"/ports.txt
+				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml >> /home/"$SEEDUSER"/dockers/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
 				;;
 			2)
 				echo -e " ${BWHITE}* Sickrage${NC}"
 				cp -Rf "$BASEDIRDOCKER"/sickrage /home/"$SEEDUSER"/dockers
 				calcul_port 5050
-				echo "$PORT" >> "$USERSFILE"/ports.txt
+				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml >> /home/"$SEEDUSER"/dockers/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
 				;;
 			3)
 				echo -e " ${BWHITE}* Couchpotato${NC}"
+				cp -Rf "$BASEDIRDOCKER"/couchpotato /home/"$SEEDUSER"/dockers
+				calcul_port 5050
+				echo "$PORT" >> "$CONFDIR"/ports.txt
+				sed_docker /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				;;
+			4)
+				echo -e " ${BWHITE}* Portainer${NC}"
+				cp -Rf "$BASEDIRDOCKER"/portainer /home/"$SEEDUSER"/dockers
+				calcul_port 5050
+				echo "$PORT" >> "$CONFDIR"/ports.txt
+				sed_docker /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
 				;;
 
 		esac

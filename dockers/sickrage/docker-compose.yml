@@ -1,15 +1,15 @@
-sickrage-%USER%:
-  restart: always
-  image: xataz/sickrage
-  container_name: sickrage-%USER%
-  environment:
-    - UID=%UID%
-    - GID=%GID%
-    - WEBROOT=/
-  ports:
-    - %PORT%:8081
-  volumes:
-    - /home/%USER%/torrents:/data/torrents
-    - /home/%USER%/watch:/data/.watch
-    - /home/%USER%/dockers/sickrage/data:/data
-    - /home/%USER%/dockers/sickrage/config:/config
+  sickrage-%USER%:
+    restart: always
+    image: xataz/sickrage
+    container_name: sickrage-%USER%
+    environment:
+      - UID=%UID%
+      - GID=%GID%
+      - WEBROOT=/
+    ports:
+     - %PORT%:8081
+    volumes:
+     - /home/%USER%/torrents:/data/torrents
+     - /home/%USER%/watch:/data/.watch
+     - /home/%USER%/dockers/sickrage/data:/data
+     - /home/%USER%/dockers/sickrage/config:/config

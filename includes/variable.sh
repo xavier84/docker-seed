@@ -13,6 +13,7 @@ NC='\033[0m'
 #variables
 BASEDIR="/opt/seedbox-compose"
 BASEDIRDOCKER="/opt/seedbox-compose/dockers"
-CONFDIR="/etc/seedboxcompose"
+
+CONFDIR="/etc/seedbox-compose"
 VERSION=$(cat /etc/debian_version)
-USERSFILE="/etc/seedboxcompose"
+
