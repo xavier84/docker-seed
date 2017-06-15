@@ -31,20 +31,13 @@ if [[ ! -d "$CONFDIR" ]]; then
 
 	apt-get install -y \
 	gawk \
+	curl \
 	apache2-utils \
 	htop \
-	unzip \
-	dialog \
-	git \
 	apt-transport-https \
 	ca-certificates \
-	curl \
-	gnupg2 \
 	software-properties-common \
-	locate \
-	tree \
-	openssl \
-	members
+ 	openssl
 	checking_errors $? installation
 
 	echo "deb https://apt.dockerproject.org/repo debian-jessie main" >> /etc/apt/sources.list
@@ -55,7 +48,7 @@ if [[ ! -d "$CONFDIR" ]]; then
 	dpkg-query -l docker > /dev/null 2>&1
   	if [ $? != 0 ]; then
 		echo " * Installing Docker"
-		apt-get install -y docker-engine
+		apt-get install -y docker-engine --force-yes
 		checking_errors $? docker
 		systemctl start docker
 		checking_errors $? start-docker
@@ -124,11 +117,11 @@ if [[ ! -d "$CONFDIR" ]]; then
 
 
 		cp "$BASEDIRDOCKER"/boring-nginx/docker-compose.yml "$CONFDIR"
-		mkdir "$CONFDIR"/nginx/{sites-enabled,conf,log,certs,passwds,www}
+		mkdir -p "$CONFDIR"/nginx/{sites-enabled,conf,log,certs,passwds,www}
 		cp "$BASEDIRDOCKER"/boring-nginx/seedbox.conf "$CONFDIR"/nginx/sites-enabled/seedbox.conf
 
-		htpasswd -bs "$CONFDIR"/nginx/passwds/seed.htpasswd "$SEEDUSER" "${PASSWORD}"
-		chmod 640 "$CONFDIR"/nginx/passwds/*
+		htpasswd -cbs "$CONFDIR"/nginx/passwds/seed.htpasswd "$SEEDUSER" "${PASSWORD}"
+		chmod 644 "$CONFDIR"/nginx/passwds/*
 
 
 
@@ -138,35 +131,32 @@ if [[ ! -d "$CONFDIR" ]]; then
 			1)
 				echo -e " ${BWHITE}* RuTorrent${NC}"
 				cp -Rf "$BASEDIRDOCKER"/rutorrent /home/"$SEEDUSER"/dockers
-				calcul_port 5050 45000
+				calcul_port 45000
 				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml
 				cat /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				add_vhost rutorrent 8080
 				;;
 			2)
 				echo -e " ${BWHITE}* Sickrage${NC}"
 				cp -Rf "$BASEDIRDOCKER"/sickrage /home/"$SEEDUSER"/dockers
-				calcul_port 5050
-				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml
 				cat /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				add_vhost sickrage 8081
 				;;
 			3)
 				echo -e " ${BWHITE}* Couchpotato${NC}"
 				cp -Rf "$BASEDIRDOCKER"/couchpotato /home/"$SEEDUSER"/dockers
-				calcul_port 5050
-				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml
 				cat /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				add_vhost couchpotato 5050
 				;;
 			4)
 				echo -e " ${BWHITE}* Portainer${NC}"
 				cp -Rf "$BASEDIRDOCKER"/portainer /home/"$SEEDUSER"/dockers
-				calcul_port 5050
-				echo "$PORT" >> "$CONFDIR"/ports.txt
 				sed_docker /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml
 				cat /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
 				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers

@@ -6,9 +6,7 @@
     environment:
       - UID=%UID%
       - GID=%GID%
-      - WEBROOT=/
-    ports:
-     - %PORT%:5050
+      - WEBROOT=/couchpotato
     volumes:
      - /home/%USER%/watch:/root
      - /home/%USER%/dockers/couchpotato/config:/config

@@ -5,10 +5,9 @@
     environment:
       - UID=%UID%
       - GID=%GID%
-      - WEBROOT=/
+      - WEBROOT=/rutorrent
     ports:
-      - %PORT%:8080
-      - %PORT1%:45000
+      - %PORT%:45000
     volumes:
       - /home/%USER%/torrents:/data/torrents
       - /home/%USER%/watch:/data/.watch

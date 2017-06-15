@@ -5,9 +5,7 @@
     environment:
       - UID=%UID%
       - GID=%GID%
-      - WEBROOT=/
-    ports:
-     - %PORT%:8081
+      - WEBROOT=/sickrage
     volumes:
      - /home/%USER%/torrents:/data/torrents
      - /home/%USER%/watch:/data/.watch

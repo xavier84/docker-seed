@@ -22,15 +22,28 @@ sed -i \
 }
 
 calcul_port () {
-	HISTO=$(wc -l < "$USERSFILE"/ports.txt)
+	HISTO=$(wc -l < "$CONFDIR"/ports.txt)
 	PORT=$(( $(($1))+HISTO ))
 	PORT1=$(( $(($2))+HISTO ))
 }
 
-checking_vhost() {
-	if [[ ! -f /etc/seedbox-compose/nginx/conf/"$1" ]]; then
-		echo -e "	${GREEN}--> Operation "$2" success !${NC}"
+add_vhost() {
+	if [[ ! -f "$CONFDIR"/nginx/conf/"$1" ]]; then
+		cp "$BASEDIRDOCKER"/"$1"/"$1".conf "$CONFDIR"/nginx/conf/
+		sed_docker "$CONFDIR"/nginx/conf/"$1".conf
+		sed -i '$d' "$CONFDIR"/nginx/sites-enabled/seedbox.conf
+		cat <<- EOF >> "$CONFDIR"/nginx/sites-enabled/seedbox.conf
+		include /conf.d/$1.conf;
+		}
+		EOF
 	else
-		echo -e "	${RED}--> Operation "$2" failed !${NC}"
+		sed -i '$d' "$CONFDIR"/nginx/conf/"$1".conf
+			cat <<- EOF >> "$CONFDIR"/nginx/conf/"$1".conf
+			                if (\$remote_user = "%USER%") {
+		                        proxy_pass http://"$1"-%USER%:"$2";
+		                        break;
+			               }
+			      }
+			EOF
 	fi
 }
