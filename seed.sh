@@ -165,6 +165,11 @@ if [[ ! -d "$CONFDIR" ]]; then
 		esac
 	done
 
+	cd "$CONFDIR"
+	docker-compose up -d
+	checking_errors $? compose-up
+
+
 else
 	clear
 	echo -e " ${RED}--> Seedbox-Compose already installed !${NC}"
