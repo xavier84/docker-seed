@@ -5,13 +5,13 @@
 
 
 
-if [[ "$VERSION" =~ 8.* ]] || [[ "$VERSION" =~ 9.* ]] || [[ "$OS" = "Ubuntu" ]]; then
+if [[ "$VERSION" =~ 7.* ]] || [[ "$VERSION" =~ 8.* ]] || [[ "$VERSION" =~ 9.* ]] || [[ "$OS" = "Ubuntu" ]]; then
 		if [ "$(id -u)" -ne 0 ]; then
 			echo "Ce script doit être exécuté en root"
 			exit 1
 		fi
 	else
-			echo "Ce script doit être exécuté sur Debian 8/9 ou Ubuntu"
+			echo "Ce script doit être exécuté sur Debian 7/8/9 ou Ubuntu"
 			exit 1
 	fi
 
@@ -73,8 +73,15 @@ if [[ ! -d "$VOLUMES_TRAEFIK_PATH" ]]; then
 	cp -R ${BASEDIRDOCKER}/traefik/html /var/www/
 	cp ${BASEDIRDOCKER}/traefik/traefik.toml  ${VOLUMES_TRAEFIK_PATH}/traefik.toml
 	cp ${BASEDIRDOCKER}/traefik/docker-compose.yml ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
-	cat <<- EOF > "${VOLUMES_TRAEFIK_PATH}"/.env
+	sed -i "s|@MAIL@|$MAIL|g;" ${VOLUMES_TRAEFIK_PATH}/traefik.toml
+	sed -i "s|@DOMAIN@|$DOMAIN|g;" ${VOLUMES_TRAEFIK_PATH}/traefik.toml
+	sed -i "s|@TRAEFIK_DASHBOARD_URL@|$TRAEFIK_DASHBOARD_URL|g;" ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
+	sed -i "s|@VOLUMES_TRAEFIK_PATH@|$VOLUMES_TRAEFIK_PATH|g;" ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
+	sed -i "s|@PROXY_NETWORK@|$PROXY_NETWORK|g;" ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
+	sed -i "s|@DOMAIN@|$DOMAIN|g;" ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
+	sed -i "s|@VAR@|$VAR|g;" ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml
 
+	cat <<- EOF > "${VOLUMES_TRAEFIK_PATH}"/.env
 	VAR=$VAR
 	MAIL=$MAIL
 	USERNAME=$USERNAME
@@ -82,108 +89,10 @@ if [[ ! -d "$VOLUMES_TRAEFIK_PATH" ]]; then
 	DOMAIN=$DOMAIN
 	PROXY_NETWORK=$PROXY_NETWORK
 	TRAEFIK_DASHBOARD_URL=$TRAEFIK_DASHBOARD_URL
-
 	EOF
 
-
-
-
-	echo -e " ${BWHITE}* Adding $SEEDUSER to the system"
-	useradd -M -s /bin/bash "$SEEDUSER"
-	checking_errors $? ajout-user
-	echo "${SEEDUSER}:${PASSWORD}" | chpasswd
-	mkdir -p /home/"$SEEDUSER"/{watch,torrents,dockers}
-	chown -R "$SEEDUSER":"$SEEDUSER" /home/"$SEEDUSER"
-	chown root:"$SEEDUSER" /home/"$SEEDUSER"
-	chmod 755 /home/"$SEEDUSER"
-	USERID=$(id -u $SEEDUSER)
-	GRPID=$(id -g $SEEDUSER)
-
-	sed -i "s/Subsystem[[:blank:]]sftp[[:blank:]]\/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp/g;" /etc/ssh/sshd_config
-	sed -i "s/UsePAM/#UsePAM/g;" /etc/ssh/sshd_config
-
-	cat <<- EOF >> /etc/ssh/sshd_config
-	Match User $SEEDUSER
-	ChrootDirectory /home/$SEEDUSER
-	EOF
-
-	service ssh restart
-	checking_errors $? restart-ssh
-
-
-	if [[ ! -f "$CONFDIR"/users.txt ]]; then
-		echo "$SEEDUSER" >> "$CONFDIR"/users.txt
-	fi
-	if [[ ! -f "$CONFDIR"/ports.txt ]]; then
-		echo "5050" >> "$CONFDIR"/ports.txt
-		PORT="5050"
-	fi
-
-
-	ACTION=$(whiptail --title "Services manager" --checklist \
-	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
-			"1" "RuTorrent" OFF \
-			"2" "Sickrage" OFF \
-			"3" "Couchpotato" OFF \
-			"4" "Portainer" OFF 3>&1 1>&2 2>&3)
-		echo ""
-
-		ACTION="$(echo $ACTION | tr -d '"')"
-
-
-		cp "$BASEDIRDOCKER"/boring-nginx/docker-compose.yml "$CONFDIR"
-		mkdir -p "$CONFDIR"/nginx/{sites-enabled,conf,log,certs,passwds,www}
-		cp "$BASEDIRDOCKER"/boring-nginx/seedbox.conf "$CONFDIR"/nginx/sites-enabled/seedbox.conf
-
-		htpasswd -cbs "$CONFDIR"/nginx/passwds/seed.htpasswd "$SEEDUSER" "${PASSWORD}"
-		chmod 644 "$CONFDIR"/nginx/passwds/*
-
-
-
-	for APP in $(echo $ACTION)
-	do
-		case $APP in
-			1)
-				echo -e " ${BWHITE}* RuTorrent${NC}"
-				cp -Rf "$BASEDIRDOCKER"/rutorrent /home/"$SEEDUSER"/dockers
-				calcul_port 45000
-				echo "$PORT" >> "$CONFDIR"/ports.txt
-				sed_docker /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/rutorrent/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				add_vhost rutorrent 8080
-				;;
-			2)
-				echo -e " ${BWHITE}* Sickrage${NC}"
-				cp -Rf "$BASEDIRDOCKER"/sickrage /home/"$SEEDUSER"/dockers
-				sed_docker /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/sickrage/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				add_vhost sickrage 8081
-				;;
-			3)
-				echo -e " ${BWHITE}* Couchpotato${NC}"
-				cp -Rf "$BASEDIRDOCKER"/couchpotato /home/"$SEEDUSER"/dockers
-				sed_docker /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				add_vhost couchpotato 5050
-				;;
-			4)
-				echo -e " ${BWHITE}* Portainer${NC}"
-				cp -Rf "$BASEDIRDOCKER"/portainer /home/"$SEEDUSER"/dockers
-				sed_docker /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				;;
-
-		esac
-	done
-
-	cd "$CONFDIR"
-	docker-compose up -d
-	checking_errors $? compose-up
-
+	docker network create traefik_proxy
+	docker-compose -f ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml up -d
 
 else
 	clear
