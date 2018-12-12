@@ -142,7 +142,6 @@ INSTALLDOCKER () {
 			mkdir -p /etc/apache2
 			touch /etc/apache2/.htpasswd
 			clear
-			logo.sh
 			whiptail --title "Installation" --msgbox "Installation docker & docker compose terminée." 8 78
 		else
 			apt update && apt upgrade -y
@@ -155,15 +154,39 @@ INSTALLDOCKER () {
 			mkdir -p /etc/apache2
 			touch /etc/apache2/.htpasswd
 			clear
-			logo.sh
 			whiptail --title "Installation" --msgbox "Installation docker & docker compose terminée." 8 78
 		fi
 
 	DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 	TRAEFIK_DASHBOARD_URL=$(whiptail --title "Panel Traefik" --inputbox "Adresse web traefik :" 9 80 traefik.${DOMAIN} 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 	USERNAME=$(whiptail --title "Authentification Traefik" --inputbox "Nom d'utilisateur pour l'authentification Traefik\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 	PASSWD=$(whiptail --title "Authentification Traefik" --passwordbox "Mot de passe pour l'authentification Traefik\ninterface web :" 9 80 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 	MAIL=$(whiptail --title "Adresse mail pour Traefik" --inputbox "Adresse mail :" 7 50 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 
 	htpasswd -bs /etc/apache2/.htpasswd "$USERNAME" "$PASSWD"
 	htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
@@ -194,4 +217,35 @@ INSTALLDOCKER () {
 
 	docker network create traefik_proxy
 	docker-compose -f ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml up -d
+}
+
+MANUSER () {
+	MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
+		"1" "Ajout d'utilisateurs" \
+		"2" "Suppression d'utilisateurs" \
+		"15" "Retour"  3>&1 1>&2 2>&3)
+exitstatus=$?
+if [ $exitstatus != 0 ]
+then
+	exit 1
+fi
+	case $MANAGER in
+		1)
+
+		;;
+		2)
+
+		;;
+		3)
+
+		;;
+		15)
+			break
+		;;
+	esac
+}
+
+
+MANAPPLI () {
+	sed -i '/^${NAME}-$USERNAME$/d' /home/"$USERNAME"/appli.txt
 }
