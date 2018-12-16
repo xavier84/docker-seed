@@ -26,8 +26,8 @@ fi
 clear
 while :; do
 MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
-		"1" "Ajout et suppression d'utilisateurs" \
-		"2" "Management application" \
+		"1" "Gestion des uilisateurs" \
+		"2" "Gestion des applications" \
 		"3" "Ajout d'un domain" \
 		"4" "SSL pour le domain" \
 		"5" "suppression de Seedbox-Compose" \
@@ -43,7 +43,7 @@ fi
 			MANUSER
 		;;
 		2)
-
+			MANAPPLI
 		;;
 		3)
 

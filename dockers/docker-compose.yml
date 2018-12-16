@@ -1,0 +1,14 @@
+version: '3'
+services:
+
+
+
+
+
+networks:
+  torrent:
+  proxy:
+    external:
+      name: traefik_proxy
+  internal:
+    external: false

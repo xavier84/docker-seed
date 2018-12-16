@@ -8,14 +8,16 @@ checking_errors() {
 	fi
 }
 
-sed_docker() {
+SEDDOCKER() {
 sed -i \
 	-e "s|@FILMS@|$FILMS|g" \
 	-e "s|@SERIES@|$SERIES|g" \
 	-e "s|@ANIMES@|$ANIMES|g" \
 	-e "s|@MUSIC@|$MUSIC|g" \
-	-e "s|@VOLUMES_ROOT_PATH@|$VOLUMES_ROOT_PATH|g" \
+	-e "s|@SHOME@|$SHOME|g" \
 	-e "s|@VAR@|$VAR|g" \
+	-e "s|@MDP@|$MDP|g" \
+	-e "s|@PORT@|$PORT|g" \
 	-e "s|@MAIL@|$MAIL|g" \
 	-e "s|@USERNAME@|$USERNAME|g" \
 	-e "s|@PASSWD@|$PASSWD|g" \
@@ -61,31 +63,24 @@ printf '\n'
 }
 
 
-calcul_port () {
+CALCULPORT () {
 	HISTO=$(wc -l < "$CONFDIR"/ports.txt)
 	PORT=$(( $(($1))+HISTO ))
 	PORT1=$(( $(($2))+HISTO ))
 }
 
-add_appli () {
+ADDAPPLI () {
 	USERNAME=$1
 	NAME=$2
 	INSTALL=""
 
 	if docker ps  | grep -q ${NAME}-$USERNAME; then
-		echo -e "${CGREEN}${NAME}est déjà lancé${CEND}"
-		echo ""
-		read -p "Appuyer sur la touche Entrer pour retourner au menu"
-		clear
-		logo.sh
+		whiptail --title "OS" --msgbox "${NAME}est déjà lancé" 8 70
 	else
-		grep ^${NAME}-$USERNAME$ /home/"$USERNAME"/appli.txt
+		grep ^${NAME} "${CONFDIR}"/"${USERNAME}"/appli.txt
 		if  [ $? = 0 ] ; then
-			echo ""
-			echo -e "${CRED}Bizarre application activé mais pas lancer${CEND}"
-			echo -e "${CRED}aller je relance application${CEND}"
-			echo ""
-			docker-compose -f /home/"$USERNAME"/docker-compose.yml up -d ${NAME}-$USERNAME
+			whiptail --title "OS" --msgbox "Bizarre application activé mais paslancer \naller je relance application" 8 70
+			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d ${NAME}-$USERNAME
 		else
 			INSTALL=INSTALL
 		fi
@@ -221,9 +216,10 @@ INSTALLDOCKER () {
 
 MANUSER () {
 	MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
-		"1" "Ajout d'utilisateurs" \
-		"2" "Suppression d'utilisateurs" \
-		"15" "Retour"  3>&1 1>&2 2>&3)
+		"1" "Creation utilisateur" \
+		"2" "Suppression utilisateur" \
+		"3" "Modification mot de passe" \
+		"4" "Retour"  3>&1 1>&2 2>&3)
 exitstatus=$?
 if [ $exitstatus != 0 ]
 then
@@ -231,15 +227,57 @@ then
 fi
 	case $MANAGER in
 		1)
+			DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
+			exitstatus=$?
+			if [ $exitstatus != 0 ]
+			then
+				exit 1
+			fi
+			USERNAME=$(whiptail --title "Authentification Seedbox" --inputbox "Nom d'utilisateur pour l'authentification Seedbox\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
+			exitstatus=$?
+			if [ $exitstatus != 0 ]
+			then
+				exit 1
+			fi
+			PASSWD=$(whiptail --title "Authentification Seedbox" --passwordbox "Mot de passe pour l'authentification Seedbox\ninterface web :" 9 80 3>&1 1>&2 2>&3)
+			exitstatus=$?
+			if [ $exitstatus != 0 ]
+			then
+				exit 1
+			fi
+			useradd -M -s /bin/bash "$USERNAME"
+			echo "${USERNAME}:${PASSWD}" | chpasswd
+
+			mkdir -p "$CONFDIR"/"$USERNAME"
+			mkdir -p /home/"$USERNAME"
+			chown -R "$USERNAME":"$USERNAME" /home/"$USERNAME"
+			htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
+			MDP=$(sed -e 's/\$/\$$/g' /etc/apache2/.htpasswd_"$USERNAME" 2>/dev/null)
+			SHOME=/home/"$USERNAME"
+			export PASSWD
+			USERMULTI=-${USERNAME}
+			echo "${USERNAME}" >> "${CONFDIR}"/users.txt
+			cat <<- EOF > "$CONFDIR"/"$USERNAME"/.env
+			SHOME=$SHOME
+			MDP=$MDP
+			USERNAME=$USERNAME
+			PASSWD=$PASSWD
+			DOMAIN=$DOMAIN
+			USERMULTI=-$USERNAME
+			PROXY_NETWORK=traefik_proxy
+			EOF
+			if [ ! -f "$CONFDIR"/"$USERNAME"/docker-compose.yml ]; then
+				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/"$USERNAME"/docker-compose.yml
+			fi
 
 		;;
 		2)
-
+			echo sup
 		;;
 		3)
-
+			echo modif
 		;;
-		15)
+		4)
 			break
 		;;
 	esac
@@ -247,5 +285,76 @@ fi
 
 
 MANAPPLI () {
-	sed -i '/^${NAME}-$USERNAME$/d' /home/"$USERNAME"/appli.txt
+	USERNAME=$(whiptail --title "Authentification Seedbox" --inputbox "Nom d'utilisateur pour l'utilisateur  :" 9 80 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
+	export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
+	ACTION=$(whiptail --title "Services manager" --checklist \
+	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
+			"1" "RuTorrent" OFF \
+			"2" "Medusa" OFF \
+			"3" "Couchpotato" OFF \
+			"4" "Portainer" OFF 3>&1 1>&2 2>&3)
+		echo ""
+
+	ACTION="$(echo $ACTION | tr -d '"')"
+	for APP in $(echo $ACTION)
+	do
+		case $APP in
+			1)
+				APPD=rutorrent
+				APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+				ADDAPPLI "${USERNAME}" "${APPD}"
+				if  [ "$INSTALL" = INSTALL ] ; then
+					RTORRENT_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
+					exitstatus=$?
+					if [ $exitstatus != 0 ]
+					then
+						exit 1
+					fi
+					CALCULPORT 45000
+					echo "$PORT" >> "${CONFDIR}"/ports.txt
+					sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+					SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+					echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
+					echo RTORRENT_FQDN=${RTORRENT_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+				fi
+				;;
+			2)
+				APPD=medusa
+				APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+				MEDUSA_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
+				exitstatus=$?
+				if [ $exitstatus != 0 ]
+				then
+					exit 1
+				fi
+				sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+				SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+				echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
+				echo MEDUSA_FQDN=${MEDUSA_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+				;;
+			3)
+				echo -e " ${BWHITE}* Couchpotato${NC}"
+				cp -Rf "$BASEDIRDOCKER"/couchpotato /home/"$SEEDUSER"/dockers
+				sed_docker /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				add_vhost couchpotato 5050
+				;;
+			4)
+				echo -e " ${BWHITE}* Portainer${NC}"
+				cp -Rf "$BASEDIRDOCKER"/portainer /home/"$SEEDUSER"/dockers
+				sed_docker /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml
+				cat /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
+				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
+				;;
+
+		esac
+done
+
+docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
 }
