@@ -75,12 +75,13 @@ ADDAPPLI () {
 	INSTALL=""
 
 	if docker ps  | grep -q ${NAME}-$USERNAME; then
-		whiptail --title "OS" --msgbox "${NAME}est déjà lancé" 8 70
+		whiptail --title "OS" --msgbox "${NAME} est déjà lancé pour ${USERNAME}." 8 70
 	else
-		grep ^${NAME} "${CONFDIR}"/"${USERNAME}"/appli.txt
+		grep ^${NAME}$ "${CONFDIR}"/"${USERNAME}"/appli.txt
 		if  [ $? = 0 ] ; then
-			whiptail --title "OS" --msgbox "Bizarre application activé mais paslancer \naller je relance application" 8 70
-			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d ${NAME}-$USERNAME
+			whiptail --title "OS" --msgbox "Bizarre application activé mais pas lancer \n je relance application" 8 70
+			#RESTART="RESTART"
+			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d ${NAME}-"${USERNAME}"
 		else
 			INSTALL=INSTALL
 		fi
@@ -220,11 +221,11 @@ MANUSER () {
 		"2" "Suppression utilisateur" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
-exitstatus=$?
-if [ $exitstatus != 0 ]
-then
-	exit 1
-fi
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
 	case $MANAGER in
 		1)
 			DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
@@ -249,6 +250,7 @@ fi
 			echo "${USERNAME}:${PASSWD}" | chpasswd
 
 			mkdir -p "$CONFDIR"/"$USERNAME"
+			touch "${CONFDIR}"/"${USERNAME}"/appli.txt
 			mkdir -p /home/"$USERNAME"
 			chown -R "$USERNAME":"$USERNAME" /home/"$USERNAME"
 			htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
@@ -285,76 +287,135 @@ fi
 
 
 MANAPPLI () {
-	USERNAME=$(whiptail --title "Authentification Seedbox" --inputbox "Nom d'utilisateur pour l'utilisateur  :" 9 80 3>&1 1>&2 2>&3)
+	MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
+		"1" "Ajout applications" \
+		"2" "Suppression applications" \
+		"3" "Modification mot de passe" \
+		"4" "Retour"  3>&1 1>&2 2>&3)
 	exitstatus=$?
 	if [ $exitstatus != 0 ]
 	then
 		exit 1
 	fi
-	export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
-	ACTION=$(whiptail --title "Services manager" --checklist \
-	"Please select services you want to add for $SEEDUSER (Use space to select)" 28 60 17 \
-			"1" "RuTorrent" OFF \
-			"2" "Medusa" OFF \
-			"3" "Couchpotato" OFF \
-			"4" "Portainer" OFF 3>&1 1>&2 2>&3)
-		echo ""
+	case $MANAGER in
+		1)
+			COMP=0
+			TAB=()
+			for USERS in $(cat "${CONFDIR}"/users.txt)
+			do
+				COMP=$(($COMP+1))
+				TAB+=( ${USERS//\"} ${COMP//\"} )
+			done
+			USERNAME=$(whiptail --title "Gestion des applications" --menu \
+				"Sélectionner l'Utilisateur" 12 50 3 \
+				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
+			ACTION=$(whiptail --title "Choix des applications" --checklist \
+			"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
+					"1" "RuTorrent" OFF \
+					"2" "Medusa" OFF \
+					"3" "Couchpotato" OFF \
+					"4" "Portainer" OFF 3>&1 1>&2 2>&3)
+			ACTION="$(echo $ACTION | tr -d '"')"
+			for APP in $(echo $ACTION)
+			do
+				case $APP in
+					1)
+						APPD=rutorrent
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						ADDAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							RTORRENT_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
+							exitstatus=$?
+							if [ $exitstatus != 0 ]
+							then
+								exit 1
+							fi
+							CALCULPORT 45000
+							echo "$PORT" >> "${CONFDIR}"/ports.txt
+							sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+							SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+							echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
+							echo RTORRENT_FQDN=${RTORRENT_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+							RESTART="RESTART"
+						fi
+						;;
+					2)
+						APPD=medusa
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						ADDAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+							MEDUSA_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
+							[[ "$?" = 1 ]] && exit 1;
+							sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+							SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+							echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
+							echo MEDUSA_FQDN=${MEDUSA_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+							RESTART="RESTART"
+						fi
+						;;
+					3)
 
-	ACTION="$(echo $ACTION | tr -d '"')"
-	for APP in $(echo $ACTION)
-	do
-		case $APP in
-			1)
-				APPD=rutorrent
-				APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-				ADDAPPLI "${USERNAME}" "${APPD}"
-				if  [ "$INSTALL" = INSTALL ] ; then
-					RTORRENT_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
-					exitstatus=$?
-					if [ $exitstatus != 0 ]
-					then
-						exit 1
-					fi
-					CALCULPORT 45000
-					echo "$PORT" >> "${CONFDIR}"/ports.txt
-					sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-					SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-					echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
-					echo RTORRENT_FQDN=${RTORRENT_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
-				fi
-				;;
-			2)
-				APPD=medusa
-				APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-				MEDUSA_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
-				exitstatus=$?
-				if [ $exitstatus != 0 ]
-				then
-					exit 1
-				fi
-				sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-				SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-				echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
-				echo MEDUSA_FQDN=${MEDUSA_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
-				;;
-			3)
-				echo -e " ${BWHITE}* Couchpotato${NC}"
-				cp -Rf "$BASEDIRDOCKER"/couchpotato /home/"$SEEDUSER"/dockers
-				sed_docker /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/couchpotato/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				add_vhost couchpotato 5050
-				;;
-			4)
-				echo -e " ${BWHITE}* Portainer${NC}"
-				cp -Rf "$BASEDIRDOCKER"/portainer /home/"$SEEDUSER"/dockers
-				sed_docker /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml
-				cat /home/"$SEEDUSER"/dockers/portainer/docker-compose.yml >> "$CONFDIR"/docker-compose.yml
-				chown -R "$SEEDUSER": /home/"$SEEDUSER"/dockers
-				;;
+						;;
+					4)
 
-		esac
-done
+						;;
 
-docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
+				esac
+			done
+		;;
+		2)
+			COMP=0
+			TAB=()
+			for USERS in $(cat "${CONFDIR}"/users.txt)
+			do
+				COMP=$(($COMP+1))
+				TAB+=( ${USERS//\"} ${COMP//\"} )
+			done
+			USERNAME=$(whiptail --title "Gestion des applications" --menu \
+				"Sélectionner l'Utilisateur" 12 50 3 \
+				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			COMP1=0
+			TAB1=()
+			for USERS1 in $(cat "${CONFDIR}"/"${USERNAME}"/appli.txt)
+			do
+				COMP1=$(($COMP1+1))
+				TAB1+=( ${USERS1//\"} ${COMP1//\"} )
+			done
+			ACTION=$(whiptail --title "Gestion des applications" --menu \
+				"Sélectionner l'Utilisateur" 12 50 3 \
+				"${TAB1[@]}"  3>&1 1>&2 2>&3)
+			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
+			#ACTION="$(echo $ACTION | tr -d '"')"
+			for APP in $(echo $ACTION)
+			do
+				case $APP in
+					rutorrent)
+						APPD=rutorrent
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						#RESTART="RESTART"
+						;;
+					medusa)
+						APPD=medusa
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						#RESTART="RESTART"
+						;;
+
+				esac
+			done
+		;;
+		3)
+			echo modif
+		;;
+		4)
+			break
+		;;
+	esac
+
+	if  [ "$RESTART" = RESTART ] ; then
+		docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
+	fi
 }
