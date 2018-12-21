@@ -355,7 +355,7 @@ MANAPPLI () {
 				COMP1=$(($COMP1+1))
 				TAB1+=( ${USERS1//\"} ${COMP1//\"} )
 			done
-			ACTION=$(whiptail --title "Gestion des applications" --menu \
+			ACTION=$(whiptail --title "Gestion des applications" --noitem --menu \
 				"Sélectionner l'Utilisateur" 12 50 3 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
