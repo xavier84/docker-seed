@@ -25,18 +25,7 @@ sed -i \
 	-e "s|@PASS@|$PASS|g" \
 	-e "s|@PROXY_NETWORK@|$PROXY_NETWORK|g" \
 	-e "s|@TRAEFIK_DASHBOARD_URL@|$TRAEFIK_DASHBOARD_URL|g" \
-	-e "s|@PLEX_FQDN@|$PLEX_FQDN|g" \
-	-e "s|@LIDARR_FQDN@|$LIDARR_FQDN|g" \
-	-e "s|@MEDUSA_FQDN@|$MEDUSA_FQDN|g" \
-	-e "s|@RTORRENT_FQDN@|$RTORRENT_FQDN|g" \
-	-e "s|@RADARR_FQDN@|$RADARR_FQDN|g" \
-	-e "s|@PORTAINER_FQDN@|$PORTAINER_FQDN|g" \
-	-e "s|@JACKETT_FQDN@|$JACKETT_FQDN|g" \
-	-e "s|@NEXTCLOUD_FQDN@|$NEXTCLOUD_FQDN|g" \
-	-e "s|@TAUTULLI_FQDN@|$TAUTULLI_FQDN|g" \
-	-e "s|@SYNCTHING_FQDN@|$SYNCTHING_FQDN|g" \
-	-e "s|@PYLOAD_FQDN@|$PYLOAD_FQDN|g" \
-	-e "s|@HEIMDALL_FQDN@|$HEIMDALL_FQDN|g" \
+	-e "s|@${FQDN}@|$FQDNN|g" \
 	"$1"
 }
 
@@ -69,17 +58,17 @@ CALCULPORT () {
 	PORT1=$(( $(($2))+HISTO ))
 }
 
-ADDAPPLI () {
+CHECKAPPLI () {
 	USERNAME=$1
 	NAME=$2
 	INSTALL=""
 
-	if docker ps  | grep -q ${NAME}-$USERNAME; then
+	if docker ps  | grep -q ${NAME}-${USERNAME}; then
 		whiptail --title "OS" --msgbox "${NAME} est déjà lancé pour ${USERNAME}." 8 70
 	else
 		grep ^${NAME}$ "${CONFDIR}"/"${USERNAME}"/appli.txt
 		if  [ $? = 0 ] ; then
-			whiptail --title "OS" --msgbox "Bizarre application activé mais pas lancer \n je relance application" 8 70
+			whiptail --title "OS" --msgbox "Bizarre, ${NAME} activé mais pas lancer \n je relance application" 8 70
 			#RESTART="RESTART"
 			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d ${NAME}-"${USERNAME}"
 		else
@@ -88,21 +77,21 @@ ADDAPPLI () {
 	fi
 }
 
-ins_appli () {
-	USERNAME=$1
-	NAME=$2
+ADDAPPLI () {
+	APPD=$1
+	FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
+	FQDN="${APPDMAJ}_FQDN"
+	sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+	SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+	echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
+	echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+	RESTART="RESTART"
 
-	export $(xargs </home/"$USERNAME"/.env)
-	docker-compose -f /home/"$USERNAME"/docker-compose.yml up -d $LOGICIEL-$USERNAME
-	docker-compose up -d $LOGICIEL 2>/dev/null
-	progress-bar 20
-	echo ""
-	echo -e "${CGREEN}Installation de $LOGICIEL réussie${CEND}"
-	echo ""
-	echo "$LOGICIEL-$USERNAME" >> /home/"$USERNAME"/appli.txt
-	read -p "Appuyer sur la touche Entrer pour continuer"
-	clear
-	logo.sh
 }
 
 del_appli () {
@@ -306,7 +295,7 @@ MANAPPLI () {
 				COMP=$(($COMP+1))
 				TAB+=( ${USERS//\"} ${COMP//\"} )
 			done
-			USERNAME=$(whiptail --title "Gestion des applications" --menu \
+			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
 				"Sélectionner l'Utilisateur" 12 50 3 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
@@ -323,36 +312,19 @@ MANAPPLI () {
 					1)
 						APPD=rutorrent
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-						ADDAPPLI "${USERNAME}" "${APPD}"
+						CHECKAPPLI "${USERNAME}" "${APPD}"
 						if  [ "$INSTALL" = INSTALL ] ; then
-							RTORRENT_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
-							exitstatus=$?
-							if [ $exitstatus != 0 ]
-							then
-								exit 1
-							fi
 							CALCULPORT 45000
 							echo "$PORT" >> "${CONFDIR}"/ports.txt
-							sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-							SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-							echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
-							echo RTORRENT_FQDN=${RTORRENT_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
-							RESTART="RESTART"
+							ADDAPPLI "${APPD}"
 						fi
 						;;
 					2)
 						APPD=medusa
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-						ADDAPPLI "${USERNAME}" "${APPD}"
+						CHECKAPPLI "${USERNAME}" "${APPD}"
 						if  [ "$INSTALL" = INSTALL ] ; then
-							APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-							MEDUSA_FQDN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
-							[[ "$?" = 1 ]] && exit 1;
-							sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-							SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
-							echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
-							echo MEDUSA_FQDN=${MEDUSA_FQDN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
-							RESTART="RESTART"
+							ADDAPPLI "${APPD}"
 						fi
 						;;
 					3)
@@ -373,7 +345,7 @@ MANAPPLI () {
 				COMP=$(($COMP+1))
 				TAB+=( ${USERS//\"} ${COMP//\"} )
 			done
-			USERNAME=$(whiptail --title "Gestion des applications" --menu \
+			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
 				"Sélectionner l'Utilisateur" 12 50 3 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			COMP1=0
@@ -417,5 +389,47 @@ MANAPPLI () {
 
 	if  [ "$RESTART" = RESTART ] ; then
 		docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
+	fi
+}
+
+MANAPPLIADMIN () {
+	MANAGER=$(whiptail --title "Seedbox Menu" --menu "Manager applications admin:" 18 80 10 \
+		"1" "Portainer" \
+		"2" "Watchtower" \
+		"3" "Modification mot de passe" \
+		"4" "Retour"  3>&1 1>&2 2>&3)
+	exitstatus=$?
+	if [ $exitstatus != 0 ]
+	then
+		exit 1
+	fi
+	if [ ! -f "$CONFDIR"/admin/docker-compose.yml ]; then
+				mkdir -p "$CONFDIR"/admin
+				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/admin/docker-compose.yml
+			fi
+	case $MANAGER in
+		1)
+			APPD=portainer
+			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+			FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+			FQDN="${APPDMAJ}_FQDN"
+			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+			sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml
+			echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+			echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
+			RESTART="RESTART"
+		;;
+		2)
+			echo sup
+		;;
+		3)
+			echo modif
+		;;
+		4)
+			break
+		;;
+	esac
+	if  [ "$RESTART" = RESTART ] ; then
+		docker-compose -f "${CONFDIR}"/admin/docker-compose.yml up -d
 	fi
 }

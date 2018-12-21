@@ -28,7 +28,7 @@ while :; do
 MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
 		"1" "Gestion des uilisateurs" \
 		"2" "Gestion des applications" \
-		"3" "Ajout d'un domain" \
+		"3" "Gestion des applications admin" \
 		"4" "SSL pour le domain" \
 		"5" "suppression de Seedbox-Compose" \
 		"15" "Sortir"  3>&1 1>&2 2>&3)
@@ -46,7 +46,7 @@ fi
 			MANAPPLI
 		;;
 		3)
-
+			MANAPPLIADMIN
 		;;
 		15)
 			exit 1

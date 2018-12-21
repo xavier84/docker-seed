@@ -1,11 +1,18 @@
 
-  portaineraudrey:
-    restart: always
+#startportainer
+  portainer:
+    container_name: portainer
     image: portainer/portainer
-    container_name: portaineraudrey
-    ports:
-      - 9000:9000
+    restart: unless-stopped
+    hostname: portainer
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@PORTAINER_FQDN@
+      - traefik.port=9000
+      - traefik.docker.network=traefik_proxy
     volumes:
-      - /home/audrey/dockers/portainer/data:/data
+      - /opt/seedbox/conf/admin/portainer/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
-    privileged: true
+    networks:
+      - proxy
+#endportainer
