@@ -367,12 +367,14 @@ MANAPPLI () {
 						APPD=rutorrent
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 						#RESTART="RESTART"
 						;;
 					medusa)
 						APPD=medusa
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 						#RESTART="RESTART"
 						;;
 
