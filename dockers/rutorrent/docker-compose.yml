@@ -7,7 +7,7 @@
     hostname: torrent
     labels:
       - traefik.enable=true
-      - traefik.frontend.rule=Host:@RTORRENT_FQDN@
+      - traefik.frontend.rule=Host:@RUTORRENT_FQDN@
       - traefik.port=8080
       - traefik.docker.network=@PROXY_NETWORK@
       - traefik.frontend.auth.basic=@MDP@
