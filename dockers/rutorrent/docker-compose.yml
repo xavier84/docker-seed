@@ -15,8 +15,8 @@
       - FILEBOT_RENAME_METHOD=copy
       - FILEBOT_RENAME_MOVIES={n} ({y})/{n} ({y})
       - FILEBOT_RENAME_SERIES={n}/Saison {s}/{n} - {s00e00} - {t}
-      - UID=1001
-      - GID=1001
+      - UID=@PUID@
+      - GID=@PGID@
       - DHT_RTORRENT=on
       - PORT_RTORRENT=6881
     ports:

@@ -12,14 +12,14 @@
       - traefik.docker.network=@PROXY_NETWORK@
       - traefik.frontend.auth.basic=@MDP@
     volumes:
-      - @SHOME@/Medias/@SERIES@:/tv
+      - @SHOME@/Medias/TV:/tv
       - @SHOME@/rutorrent/downloads:/downloads
       - @SHOME@/medusa/config:/config
     environment:
       - /etc/localtime:/etc/localtime:ro
       - TZ=Paris/Europe
-      - PUID=0
-      - PGID=0
+      - PUID=@PUID@
+      - PGID=@PGID@
     networks:
       - proxy
 #endmedusa

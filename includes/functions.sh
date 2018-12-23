@@ -23,6 +23,8 @@ sed -i \
 	-e "s|@PASSWD@|$PASSWD|g" \
 	-e "s|@DOMAIN@|$DOMAIN|g" \
 	-e "s|@PASS@|$PASS|g" \
+	-e "s|@PUID@|$PUID|g" \
+	-e "s|@PGID@|$PGID|g" \
 	-e "s|@PROXY_NETWORK@|$PROXY_NETWORK|g" \
 	-e "s|@TRAEFIK_DASHBOARD_URL@|$TRAEFIK_DASHBOARD_URL|g" \
 	-e "s|@${FQDN}@|$FQDNN|g" \
@@ -247,6 +249,8 @@ MANUSER () {
 			SHOME=/home/"$USERNAME"
 			export PASSWD
 			USERMULTI=-${USERNAME}
+			PUID=$(id -u $USERNAME)
+			PGID=$(id -u $USERNAME)
 			echo "${USERNAME}" >> "${CONFDIR}"/users.txt
 			cat <<- EOF > "$CONFDIR"/"$USERNAME"/.env
 			SHOME=$SHOME
@@ -255,6 +259,8 @@ MANUSER () {
 			PASSWD=$PASSWD
 			DOMAIN=$DOMAIN
 			USERMULTI=-$USERNAME
+			PUID=$PUID
+			PGID=$PGID
 			PROXY_NETWORK=traefik_proxy
 			EOF
 			if [ ! -f "$CONFDIR"/"$USERNAME"/docker-compose.yml ]; then
@@ -299,12 +305,16 @@ MANAPPLI () {
 				"Sélectionner l'Utilisateur" 12 50 3 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
-			ACTION=$(whiptail --title "Choix des applications" --checklist \
-			"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
-					"1" "RuTorrent" OFF \
-					"2" "Medusa" OFF \
-					"3" "Couchpotato" OFF \
-					"4" "Portainer" OFF 3>&1 1>&2 2>&3)
+			COMP1=0
+			TAB1=()
+			for LAPP1 in $(cat "${BASEDIR}"/includes/listeapp.txt)
+			do
+				COMP1=$(($COMP1+1))
+				TAB1+=( ${COMP1//\"} ${LAPP1//\"} OFF)
+			done
+			ACTION=$(whiptail --title "Choix des applications" --notags --checklist \
+				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
+				"${TAB1[@]}"  3>&1 1>&2 2>&3)
 			ACTION="$(echo $ACTION | tr -d '"')"
 			for APP in $(echo $ACTION)
 			do
