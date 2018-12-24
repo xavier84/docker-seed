@@ -2,24 +2,24 @@
 #startmedusa
   medusa-@USERNAME@:
     image: linuxserver/medusa
-    container_name: medusa-@USERNAME@
+    container_name: medusa-${USERNAME}
     restart: unless-stopped
     hostname: medusa
     labels:
       - traefik.enable=true
-      - traefik.frontend.rule=Host:@MEDUSA_FQDN@
+      - traefik.frontend.rule=Host:${MEDUSA_FQDN}
       - traefik.port=8081
-      - traefik.docker.network=@PROXY_NETWORK@
-      - traefik.frontend.auth.basic=@MDP@
+      - traefik.docker.network=${PROXY_NETWORK}
+      - traefik.frontend.auth.basic=${MDP}
     volumes:
-      - @SHOME@/Medias/TV:/tv
-      - @SHOME@/rutorrent/downloads:/downloads
-      - @SHOME@/medusa/config:/config
+      - ${SHOME}Medias/TV:/tv
+      - ${SHOME}/rutorrent/downloads:/downloads
+      - ${SHOME}/medusa/config:/config
     environment:
       - /etc/localtime:/etc/localtime:ro
       - TZ=Paris/Europe
-      - PUID=@PUID@
-      - PGID=@PGID@
+      - PUID=${PUID}
+      - PGID=${PGID}
     networks:
       - proxy
 #endmedusa

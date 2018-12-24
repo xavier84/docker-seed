@@ -72,7 +72,8 @@ CHECKAPPLI () {
 		if  [ $? = 0 ] ; then
 			whiptail --title "OS" --msgbox "Bizarre, ${NAME} activé mais pas lancer \n je relance application" 8 70
 			#RESTART="RESTART"
-			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d ${NAME}-"${USERNAME}"
+			cd "${CONFDIR}"/"${USERNAME}"
+			docker-compose up -d "${NAME}"-"${USERNAME}"
 		else
 			INSTALL=INSTALL
 		fi
@@ -92,6 +93,7 @@ ADDAPPLI () {
 	SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 	echo "${APPD}" >> "${CONFDIR}"/"${USERNAME}"/appli.txt
 	echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
+	echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/"${USERNAME}"/.env
 	RESTART="RESTART"
 
 }
@@ -252,7 +254,11 @@ MANUSER () {
 			PUID=$(id -u $USERNAME)
 			PGID=$(id -u $USERNAME)
 			echo "${USERNAME}" >> "${CONFDIR}"/users.txt
+			touch "${CONFDIR}"/ports.txt
+			CALCULPORT 45000
+			echo "$PORT" >> "${CONFDIR}"/ports.txt
 			cat <<- EOF > "$CONFDIR"/"$USERNAME"/.env
+			#GLOBAL
 			SHOME=$SHOME
 			MDP=$MDP
 			USERNAME=$USERNAME
@@ -262,9 +268,11 @@ MANUSER () {
 			PUID=$PUID
 			PGID=$PGID
 			PROXY_NETWORK=traefik_proxy
+			PORTR=$PORT
+			#URL
 			EOF
-			if [ ! -f "$CONFDIR"/"$USERNAME"/docker-compose.yml ]; then
-				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/"$USERNAME"/docker-compose.yml
+			if [ ! -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml ]; then
+				cp ${BASEDIRDOCKER}/docker-compose.yml "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 			fi
 
 		;;
@@ -292,6 +300,7 @@ MANAPPLI () {
 	then
 		exit 1
 	fi
+	RESTART=""
 	case $MANAGER in
 		1)
 			COMP=0
@@ -324,8 +333,6 @@ MANAPPLI () {
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
 						if  [ "$INSTALL" = INSTALL ] ; then
-							CALCULPORT 45000
-							echo "$PORT" >> "${CONFDIR}"/ports.txt
 							ADDAPPLI "${APPD}"
 						fi
 						;;
@@ -363,11 +370,12 @@ MANAPPLI () {
 			for USERS1 in $(cat "${CONFDIR}"/"${USERNAME}"/appli.txt)
 			do
 				COMP1=$(($COMP1+1))
-				TAB1+=( ${USERS1//\"} ${COMP1//\"} )
+				TAB1+=( ${USERS1//\"} ${COMP1//\"} OFF)
 			done
-			ACTION=$(whiptail --title "Gestion des applications" --noitem --menu \
-				"Sélectionner l'Utilisateur" 12 50 3 \
+			ACTION=$(whiptail --title "Choix des applications" --checklist \
+				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
+			ACTION="$(echo $ACTION | tr -d '"')"
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
 			#ACTION="$(echo $ACTION | tr -d '"')"
 			for APP in $(echo $ACTION)
@@ -400,7 +408,8 @@ MANAPPLI () {
 	esac
 
 	if  [ "$RESTART" = RESTART ] ; then
-		docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
+		cd "${CONFDIR}"/"${USERNAME}"
+		docker-compose up -d
 	fi
 }
 
@@ -442,6 +451,7 @@ MANAPPLIADMIN () {
 		;;
 	esac
 	if  [ "$RESTART" = RESTART ] ; then
-		docker-compose -f "${CONFDIR}"/admin/docker-compose.yml up -d
+		cd "${CONFDIR}"/admin
+		docker-compose  up -d
 	fi
 }
