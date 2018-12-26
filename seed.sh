@@ -1,7 +1,7 @@
 #!/bin/bash -i
 
-. includes/functions.sh
-. includes/variable.sh
+source /opt/seedbox/includes/functions.sh
+source /opt/seedbox/includes/variable.sh
 
 chmod 777 "${BASEDIR}"/logo.sh
 "${BASEDIR}"/logo.sh
@@ -19,7 +19,6 @@ if [[ "$VERSION" =~ 7.* ]] || [[ "$VERSION" =~ 8.* ]] || [[ "$VERSION" =~ 9.* ]]
 			exit 1
 	fi
 if [[ ! -d "${VOLUMES_TRAEFIK_PATH}" ]]; then
-	clear
 	INSTALLDOCKER
 
 fi

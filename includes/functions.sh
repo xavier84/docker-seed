@@ -82,11 +82,7 @@ CHECKAPPLI () {
 ADDAPPLI () {
 	APPD=$1
 	FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPDMAJ} :" 9 70 ${APPD}${USERMULTI}.${DOMAIN} 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	FQDN="${APPDMAJ}_FQDN"
 	sed -i.bak '/services/ r '${BASEDIRDOCKER}'/'${APPD}'/docker-compose.yml' "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 	SEDDOCKER "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
@@ -145,35 +141,15 @@ INSTALLDOCKER () {
 		fi
 
 	DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	TRAEFIK_DASHBOARD_URL=$(whiptail --title "Panel Traefik" --inputbox "Adresse web traefik :" 9 80 traefik.${DOMAIN} 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	USERNAME=$(whiptail --title "Authentification Traefik" --inputbox "Nom d'utilisateur pour l'authentification Traefik\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	PASSWD=$(whiptail --title "Authentification Traefik" --passwordbox "Mot de passe pour l'authentification Traefik\ninterface web :" 9 80 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	MAIL=$(whiptail --title "Adresse mail pour Traefik" --inputbox "Adresse mail :" 7 50 3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 
 	htpasswd -bs /etc/apache2/.htpasswd "$USERNAME" "$PASSWD"
 	htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
@@ -204,6 +180,10 @@ INSTALLDOCKER () {
 
 	docker network create traefik_proxy
 	docker-compose -f ${VOLUMES_TRAEFIK_PATH}/docker-compose.yml up -d
+
+	mkdir -p "${CONFDIR}"
+	touch "${CONFDIR}"/users.txt
+	touch "${CONFDIR}"/ports.txt
 }
 
 MANUSER () {
@@ -212,31 +192,28 @@ MANUSER () {
 		"2" "Suppression utilisateur" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	case $MANAGER in
 		1)
 			DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
-			exitstatus=$?
-			if [ $exitstatus != 0 ]
-			then
-				exit 1
-			fi
-			USERNAME=$(whiptail --title "Authentification Seedbox" --inputbox "Nom d'utilisateur pour l'authentification Seedbox\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
-			exitstatus=$?
-			if [ $exitstatus != 0 ]
-			then
-				exit 1
-			fi
+			[[ "$?" != 0 ]] && exit 1;
+			while :; do
+				TESTUSER=$(whiptail --title "Authentification Seedbox" --inputbox "Nom d'utilisateur pour l'authentification Seedbox\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				grep -w "$TESTUSER" /etc/passwd &> /dev/null
+				if [ $? -eq 1 ]; then
+					if [[ "$TESTUSER" =~ ^[a-z0-9]{3,}$ ]]; then
+						USERNAME="$TESTUSER"
+						break
+					else
+						whiptail --title "Installation" --msgbox "Le nom de votre utilisateur doit être en minuscule,\nde plus de 3 lettres et sans caractères spéciaux." 10 60
+					fi
+				else
+					whiptail --title "Installation" --msgbox "Erreur cet utilisateur existe déjà." 8 50
+				fi
+			done
 			PASSWD=$(whiptail --title "Authentification Seedbox" --passwordbox "Mot de passe pour l'authentification Seedbox\ninterface web :" 9 80 3>&1 1>&2 2>&3)
-			exitstatus=$?
-			if [ $exitstatus != 0 ]
-			then
-				exit 1
-			fi
+			[[ "$?" != 0 ]] && exit 1;
 			useradd -M -s /bin/bash "$USERNAME"
 			echo "${USERNAME}:${PASSWD}" | chpasswd
 
@@ -263,8 +240,8 @@ MANUSER () {
 			PGID=$PGID
 			PROXY_NETWORK=traefik_proxy
 			EOF
-			if [ ! -f "$CONFDIR"/"$USERNAME"/docker-compose.yml ]; then
-				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/"$USERNAME"/docker-compose.yml
+			if [ ! -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml ]; then
+				cp ${BASEDIRDOCKER}/docker-compose.yml "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 			fi
 
 		;;
@@ -287,11 +264,8 @@ MANAPPLI () {
 		"2" "Suppression applications" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
+	RESTART=""
 	case $MANAGER in
 		1)
 			COMP=0
@@ -363,13 +337,13 @@ MANAPPLI () {
 			for USERS1 in $(cat "${CONFDIR}"/"${USERNAME}"/appli.txt)
 			do
 				COMP1=$(($COMP1+1))
-				TAB1+=( ${USERS1//\"} ${COMP1//\"} )
+				TAB1+=( ${USERS1//\"} ${COMP1//\"} OFF)
 			done
-			ACTION=$(whiptail --title "Gestion des applications" --noitem --menu \
-				"Sélectionner l'Utilisateur" 12 50 3 \
+			ACTION=$(whiptail --title "Choix des applications" --checklist \
+				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
-			#ACTION="$(echo $ACTION | tr -d '"')"
+			ACTION="$(echo $ACTION | tr -d '"')"
 			for APP in $(echo $ACTION)
 			do
 				case $APP in
@@ -410,11 +384,7 @@ MANAPPLIADMIN () {
 		"2" "Watchtower" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
-	exitstatus=$?
-	if [ $exitstatus != 0 ]
-	then
-		exit 1
-	fi
+	[[ "$?" != 0 ]] && exit 1;
 	if [ ! -f "$CONFDIR"/admin/docker-compose.yml ]; then
 				mkdir -p "$CONFDIR"/admin
 				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/admin/docker-compose.yml
@@ -432,7 +402,11 @@ MANAPPLIADMIN () {
 			RESTART="RESTART"
 		;;
 		2)
-			echo sup
+			APPD=watchtower
+			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+			echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+			RESTART="RESTART"
 		;;
 		3)
 			echo modif
