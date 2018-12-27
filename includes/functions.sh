@@ -60,6 +60,10 @@ CALCULPORT () {
 	PORT1=$(( $(($2))+HISTO ))
 }
 
+DEV () {
+	whiptail --title "DEV" --msgbox "En cour de developpement." 8 50
+}
+
 CHECKAPPLI () {
 	USERNAME=$1
 	NAME=$2
@@ -112,11 +116,12 @@ fi
 }
 
 INSTALLDOCKER () {
+
 	whiptail --title "Installation" --msgbox "INSTALLATION DOCKER ET DOCKER-COMPOSE." 8 50
 	if [ "$OS" = "Ubuntu" ]
 		then
 			apt update && apt upgrade -y
-			apt install apache2-utils curl unzip -y
+			apt install apache2-utils curl unzip cpufrequtils -y
 			curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
 			curl -fsSL https://get.docker.com -o get-docker.sh
 			sh get-docker.sh
@@ -128,7 +133,7 @@ INSTALLDOCKER () {
 			whiptail --title "Installation" --msgbox "Installation docker & docker compose terminée." 8 78
 		else
 			apt update && apt upgrade -y
-			apt install apache2-utils curl unzip -y
+			apt install apache2-utils curl unzip cpufrequtils -y
 			curl https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
 			curl -fsSL https://get.docker.com -o get-docker.sh
 			sh get-docker.sh
@@ -151,6 +156,16 @@ INSTALLDOCKER () {
 	MAIL=$(whiptail --title "Adresse mail pour Traefik" --inputbox "Adresse mail :" 7 50 3>&1 1>&2 2>&3)
 	[[ "$?" != 0 ]] && exit 1;
 
+	#gouverneur
+	cpufreq-set -r -g performance
+	if [ ! -f /etc/default/cpufrequtils ]; then
+		cat <<- EOF > /etc/default/cpufrequtils
+		ENABLE="true"
+		GOVERNOR="performance"
+		MAX_SPEED="0"
+		MIN_SPEED="0"
+		EOF
+	fi
 	htpasswd -bs /etc/apache2/.htpasswd "$USERNAME" "$PASSWD"
 	htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
 	VAR=$(sed -e 's/\$/\$$/g' /etc/apache2/.htpasswd_"$USERNAME" 2>/dev/null)
@@ -246,10 +261,10 @@ MANUSER () {
 
 		;;
 		2)
-			echo sup
+			DEV
 		;;
 		3)
-			echo modif
+			DEV
 		;;
 		4)
 			break
@@ -262,7 +277,7 @@ MANAPPLI () {
 	MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 80 10 \
 		"1" "Ajout applications" \
 		"2" "Suppression applications" \
-		"3" "Modification mot de passe" \
+		"3" "Modification applications" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
 	[[ "$?" != 0 ]] && exit 1;
 	RESTART=""
@@ -312,9 +327,22 @@ MANAPPLI () {
 						fi
 						;;
 					3)
-
+						APPD=heimdall
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							ADDAPPLI "${APPD}"
+						fi
 						;;
 					4)
+						APPD=tautulli
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							ADDAPPLI "${APPD}"
+						fi
+						;;
+					40)
 
 						;;
 
@@ -349,24 +377,45 @@ MANAPPLI () {
 				case $APP in
 					rutorrent)
 						APPD=rutorrent
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 						#RESTART="RESTART"
 						;;
 					medusa)
 						APPD=medusa
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
 						#RESTART="RESTART"
 						;;
-
+					heimdall)
+						APPD=heimdall
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						#RESTART="RESTART"
+						;;
+					tautulli)
+						APPD=tautulli
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						#RESTART="RESTART"
+						;;
 				esac
 			done
 		;;
 		3)
-			echo modif
+			DEV
 		;;
 		4)
 			break
@@ -393,6 +442,11 @@ MANAPPLIADMIN () {
 		1)
 			APPD=portainer
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
+			if  [ $? = 0 ] ; then
+				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
+				break
+			fi
 			FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
 			FQDN="${APPDMAJ}_FQDN"
 			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
@@ -404,12 +458,17 @@ MANAPPLIADMIN () {
 		2)
 			APPD=watchtower
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
+			if  [ $? = 0 ] ; then
+				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
+				break
+			fi
 			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
 			echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
 			RESTART="RESTART"
 		;;
 		3)
-			echo modif
+			DEV
 		;;
 		4)
 			break

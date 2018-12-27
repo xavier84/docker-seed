@@ -10,5 +10,3 @@ networks:
   proxy:
     external:
       name: traefik_proxy
-  internal:
-    external: false

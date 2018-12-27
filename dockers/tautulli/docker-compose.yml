@@ -1,0 +1,23 @@
+
+#starttautulli
+  tautulli-@USERNAME@:
+    container_name: tautulli-@USERNAME@
+    image: tautulli/tautulli
+    restart: unless-stopped
+    hostname: tautulli
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@TAUTULLI_FQDN@
+      - traefik.port=8181
+      - traefik.docker.network=@PROXY_NETWORK@
+      - traefik.frontend.auth.basic=@MDP@
+    environment:
+      - TZ=Paris/Europe
+      - PUID=@PUID@
+      - PGID=@PGID@
+    volumes:
+      - @SHOME@/tautulli/config:/config
+      - @SHOME@/plex/config/Library/Application Support/Plex Media Server/Logs:/logs:ro
+    networks:
+      - proxy
+#endtautulli

@@ -28,14 +28,9 @@ MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 
 		"1" "Gestion des uilisateurs" \
 		"2" "Gestion des applications" \
 		"3" "Gestion des applications admin" \
-		"4" "SSL pour le domain" \
-		"5" "suppression de Seedbox-Compose" \
+		"4" "Suppression de Seedbox" \
 		"15" "Sortir"  3>&1 1>&2 2>&3)
-exitstatus=$?
-if [ $exitstatus != 0 ]
-then
-	break
-fi
+[[ "$?" != 0 ]] && exit 1;
 
 	case $MANAGER in
 		1)
