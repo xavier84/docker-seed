@@ -18,14 +18,14 @@
       - UID=@PUID@
       - GID=@PGID@
       - DHT_RTORRENT=on
-      - PORT_RTORRENT=6881
+      - PORT_RTORRENT=@PORT@
     ports:
-      - @PORT@:45000
+      - @PORT@:@PORT@
     volumes:
       - @SHOME@/rutorrent/downloads:/data/torrents
       - @SHOME@/Medias:/data/Media
-      - @SHOME@/rutorrent/data:/data
-      - @SHOME@/rutorrent/config:/config
+      - @SHOME@/docker/rutorrent/data:/data
+      - @SHOME@/docker/rutorrent/config:/config
     networks:
       - torrent
       - proxy

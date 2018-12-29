@@ -16,7 +16,7 @@
       - PUID=@PUID@
       - PGID=@PGID@
     volumes:
-      - @SHOME@/tautulli/config:/config
+      - @SHOME@/docker/tautulli/config:/config
       - @SHOME@/plex/config/Library/Application Support/Plex Media Server/Logs:/logs:ro
     networks:
       - proxy

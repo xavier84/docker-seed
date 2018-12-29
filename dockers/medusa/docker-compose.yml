@@ -14,7 +14,7 @@
     volumes:
       - @SHOME@/Medias/TV:/tv
       - @SHOME@/rutorrent/downloads:/downloads
-      - @SHOME@/medusa/config:/config
+      - @SHOME@/docker/medusa/config:/config
     environment:
       - /etc/localtime:/etc/localtime:ro
       - TZ=Paris/Europe

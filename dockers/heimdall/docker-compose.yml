@@ -17,7 +17,7 @@
       - PUID=@PUID@
       - PGID=@PGID@
     volumes:
-      - @SHOME@/heimdall/config:/config
+      - @SHOME@/docker/heimdall/config:/config
     networks:
       - proxy
 #endheimdall

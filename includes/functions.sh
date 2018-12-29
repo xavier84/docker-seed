@@ -429,48 +429,69 @@ MANAPPLI () {
 
 MANAPPLIADMIN () {
 	MANAGER=$(whiptail --title "Seedbox Menu" --menu "Manager applications admin:" 18 80 10 \
-		"1" "Portainer" \
-		"2" "Watchtower" \
-		"3" "Modification mot de passe" \
-		"4" "Retour"  3>&1 1>&2 2>&3)
+		"1" "Plex" \
+		"2" "Portainer" \
+		"3" "Watchtower" \
+		"4" "Modification mot de passe" \
+		"5" "Retour"  3>&1 1>&2 2>&3)
 	[[ "$?" != 0 ]] && exit 1;
+	RESTART=""
 	if [ ! -f "$CONFDIR"/admin/docker-compose.yml ]; then
 				mkdir -p "$CONFDIR"/admin
+				touch "${CONFDIR}"/admin/appli.txt
 				cp ${BASEDIRDOCKER}/docker-compose.yml "$CONFDIR"/admin/docker-compose.yml
 			fi
 	case $MANAGER in
 		1)
-			APPD=portainer
+			APPD=plex
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
-						grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
-			if  [ $? = 0 ] ; then
+			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
+			if  [ $? != 0 ] ; then
+				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+				FQDN="${APPDMAJ}_FQDN"
+				CLAIM=$(whiptail --title "CLAIM" --inputbox "Un token est nécéssaire pour AUTHENTIFIER le serveur Plex .Pour obtenir un identifiant CLAIM, allez à cette adresse et copier le dans le terminal. \nhttps://www.plex.tv/claim/ " 12 70 claim- 3>&1 1>&2 2>&3)
+				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+				sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml
+				sed -i "s|@CLAIM@|$CLAIM|g;" "${CONFDIR}"/admin/docker-compose.yml
+				echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+				echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
+				RESTART="RESTART"
+			else
 				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
-				break
 			fi
-			FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
-			FQDN="${APPDMAJ}_FQDN"
-			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
-			sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml
-			echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
-			echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
-			RESTART="RESTART"
 		;;
 		2)
+			APPD=portainer
+			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
+			if  [ $? != 0 ] ; then
+				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+				FQDN="${APPDMAJ}_FQDN"
+				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+				sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml
+				echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+				echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
+				RESTART="RESTART"
+			else
+				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
+			fi
+		;;
+		3)
 			APPD=watchtower
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
-			if  [ $? = 0 ] ; then
+			if  [ $? != 0 ] ; then
+				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+				echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+				RESTART="RESTART"
+			else
 				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
-				break
 			fi
-			sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
-			echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
-			RESTART="RESTART"
-		;;
-		3)
-			DEV
 		;;
 		4)
+			DEV
+		;;
+		5)
 			break
 		;;
 	esac

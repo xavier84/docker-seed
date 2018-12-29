@@ -28,7 +28,9 @@ MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 
 		"1" "Gestion des uilisateurs" \
 		"2" "Gestion des applications" \
 		"3" "Gestion des applications admin" \
-		"4" "Suppression de Seedbox" \
+		"4" "Gestion des options" \
+		"5" "Gestion des sauvegarde/restauration" \
+		"6" "Suppression de Seedbox" \
 		"15" "Sortir"  3>&1 1>&2 2>&3)
 [[ "$?" != 0 ]] && exit 1;
 
@@ -37,7 +39,11 @@ MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 
 			MANUSER
 		;;
 		2)
-			MANAPPLI
+			if [[ -s "${CONFDIR}"/users.txt ]]; then
+				MANAPPLI
+			else
+				whiptail --title "user" --msgbox "Cree un uilisateur avant" 8 60
+			fi
 		;;
 		3)
 			MANAPPLIADMIN

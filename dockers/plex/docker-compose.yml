@@ -1,23 +1,26 @@
 
-#startheimdall
-  heimdall-@USERNAME@:
-    container_name: heimdall-@USERNAME@
-    image: linuxserver/heimdall
+#startplex
+  plex:
+    container_name: plex
+    image: plexinc/pms-docker
     restart: unless-stopped
-    hostname: heimdall
+    hostname: plex
     labels:
       - traefik.enable=true
-      - traefik.frontend.rule=Host:@HEIMDALL_FQDN@
-      - traefik.port=443
-      - traefik.docker.network=@PROXY_NETWORK@
-      - traefik.frontend.auth.basic=@MDP@
-      - traefik.protocol=https
+      - traefik.frontend.rule=Host:@PLEX_FQDN@
+      - traefik.port=32400
+      - traefik.docker.network=traefik_proxy
     environment:
-      - TZ=Paris/Europe
-      - PUID=@PUID@
-      - PGID=@PGID@
+      - TZ=Europe/Paris
+      - PLEX_CLAIM=@CLAIM@
+      - PLEX_UID=0
+      - PLEX_GID=0
+    ports:
+      - 32400:32400
     volumes:
-      - @SHOME@/heimdall/config:/config
+      - /opt/seedbox/conf/admin/plex:/config
+      - /opt/seedbox/conf/admin/plex/transcode:/transcode
+      - /home:/home
     networks:
       - proxy
-#endheimdall
+#endplex
