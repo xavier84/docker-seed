@@ -199,6 +199,9 @@ INSTALLDOCKER () {
 	mkdir -p "${CONFDIR}"
 	touch "${CONFDIR}"/users.txt
 	touch "${CONFDIR}"/ports.txt
+	sed -i "s/Subsystem[[:blank:]]sftp[[:blank:]]\/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp/g;" /etc/ssh/sshd_config
+	sed -i "s/UsePAM/#UsePAM/g;" /etc/ssh/sshd_config
+	systemctl restart ssh
 }
 
 MANUSER () {
@@ -232,10 +235,12 @@ MANUSER () {
 			useradd -M -s /bin/bash "$USERNAME"
 			echo "${USERNAME}:${PASSWD}" | chpasswd
 
-			mkdir -p "$CONFDIR"/"$USERNAME"
+			mkdir -p "$CONFDIR"/"${USERNAME}"
 			touch "${CONFDIR}"/"${USERNAME}"/appli.txt
-			mkdir -p /home/"$USERNAME"
-			chown -R "$USERNAME":"$USERNAME" /home/"$USERNAME"
+			mkdir -p /home/"${USERNAME}"
+			chown -R "${USERNAME}":"${USERNAME}" /home/"${USERNAME}"
+			chown  root:"${USERNAME}" /home/"${USERNAME}"
+			chmod 755 /home/"${USERNAME}"
 			htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
 			MDP=$(sed -e 's/\$/\$$/g' /etc/apache2/.htpasswd_"$USERNAME" 2>/dev/null)
 			SHOME=/home/"$USERNAME"
@@ -243,6 +248,11 @@ MANUSER () {
 			USERMULTI=-${USERNAME}
 			PUID=$(id -u $USERNAME)
 			PGID=$(id -u $USERNAME)
+			cat <<- EOF >> /etc/ssh/sshd_config
+				Match User ${USERNAME}
+				ChrootDirectory /home/${USERNAME}
+			EOF
+			systemctl restart ssh
 			echo "${USERNAME}" >> "${CONFDIR}"/users.txt
 			cat <<- EOF > "$CONFDIR"/"$USERNAME"/.env
 			SHOME=$SHOME
@@ -261,7 +271,35 @@ MANUSER () {
 
 		;;
 		2)
-			DEV
+			if [[ -s "${CONFDIR}"/users.txt ]]; then
+				COMP=0
+				TAB=()
+				for USERS in $(cat "${CONFDIR}"/users.txt)
+				do
+					COMP=$(($COMP+1))
+					TAB+=( ${USERS//\"} ${COMP//\"} )
+				done
+				USERNAME=$(whiptail --title "Suppression" --noitem --menu \
+					"Sélectionner l'Utilisateur" 15 50 6 \
+					"${TAB[@]}"  3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				DATE="$(date '+%d-%m-%y_%Hh%Mm%Ss')"
+				if (whiptail --title "Suppression" --yesno "Veux-tu gardé le dossier: /home/"${USERNAME}"/rutorrent/downloads ? \n\n si "oui" il sera deplacé dans /home/backup/"${USERNAME}-${DATE}"" 15 60 3>&1 1>&2 2>&3); then
+					SAVE=oui
+				else
+					SAVE=non
+				fi
+				if  [[ "$SAVE" = "oui" ]]; then
+					mkdir -p /home/backup/"${USERNAME}-${DATE}"
+					mv /home/"${USERNAME}"/rutorrent/downloads/ /home/backup/"${USERNAME}-${DATE}"
+				fi
+				docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs
+				userdel -r -f "${USERNAME}"
+				sed -i "/^${USERNAME}$/d" "${CONFDIR}"/users.txt
+				rm -rf "${CONFDIR}"/"${USERNAME}"
+			else
+				whiptail --title "user" --msgbox "Aucun uilisateur" 8 60
+			fi
 		;;
 		3)
 			DEV
@@ -291,7 +329,7 @@ MANAPPLI () {
 				TAB+=( ${USERS//\"} ${COMP//\"} )
 			done
 			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
-				"Sélectionner l'Utilisateur" 12 50 3 \
+				"Sélectionner l'Utilisateur" 15 50 6 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
 			COMP1=0
@@ -358,7 +396,7 @@ MANAPPLI () {
 				TAB+=( ${USERS//\"} ${COMP//\"} )
 			done
 			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
-				"Sélectionner l'Utilisateur" 12 50 3 \
+				"Sélectionner l'Utilisateur" 15 50 6 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			COMP1=0
 			TAB1=()
