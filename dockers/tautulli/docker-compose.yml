@@ -17,7 +17,6 @@
       - PGID=@PGID@
     volumes:
       - @SHOME@/docker/tautulli/config:/config
-      - @SHOME@/plex/config/Library/Application Support/Plex Media Server/Logs:/logs:ro
     networks:
       - proxy
 #endtautulli

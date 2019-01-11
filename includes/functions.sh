@@ -18,6 +18,7 @@ sed -i \
 	-e "s|@VAR@|$VAR|g" \
 	-e "s|@MDP@|$MDP|g" \
 	-e "s|@PORT@|$PORT|g" \
+	-e "s|@PORT1@|$PORT1|g" \
 	-e "s|@MAIL@|$MAIL|g" \
 	-e "s|@USERNAME@|$USERNAME|g" \
 	-e "s|@PASSWD@|$PASSWD|g" \
@@ -64,6 +65,18 @@ DEV () {
 	whiptail --title "DEV" --msgbox "En cour de developpement." 8 50
 }
 
+ADDFTP () {
+	docker exec -i ftp /bin/bash << EOX
+	( echo ${PASSWD} ; echo ${PASSWD} )|pure-pw useradd ${USERNAME} -f /etc/pure-ftpd/passwd/pureftpd.passwd -m -u ftpuser -d /home/ftpusers/${USERNAME}
+EOX
+}
+
+DELFTP () {
+	docker exec -i ftp /bin/bash << EOC
+    pure-pw userdel ${USERNAME} -f /etc/pure-ftpd/passwd/pureftpd.passwd
+EOC
+}
+
 CHECKAPPLI () {
 	USERNAME=$1
 	NAME=$2
@@ -94,25 +107,6 @@ ADDAPPLI () {
 	echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/"${USERNAME}"/url.txt
 	RESTART="RESTART"
 
-}
-
-del_appli () {
-	sed -i '/^${NAME}-$USERNAME$/d' /home/"$USERNAME"/appli.txt
-}
-
-add_domain() {
-echo -e "${CCYAN}Sous domaine de $1 ${CEND}"
-DOMMAJ=$(echo "$1" | tr "[:lower:]" "[:upper:]")
-read -rp "${DOMMAJ}_FQDN = " DOM_FQDN
-
-
-if [ -n "$DOM_FQDN" ]
-then
-	export DOM_FQDN=${DOM_FQDN}.${DOMAIN}
-else
-	DOM_FQDN="$1".${DOMAIN}
-	export DOM_FQDN
-fi
 }
 
 INSTALLDOCKER () {
@@ -241,8 +235,8 @@ MANUSER () {
 			chown -R "${USERNAME}":"${USERNAME}" /home/"${USERNAME}"
 			chown  root:"${USERNAME}" /home/"${USERNAME}"
 			chmod 755 /home/"${USERNAME}"
-			htpasswd -cbs /etc/apache2/.htpasswd_"$USERNAME" "$USERNAME" "$PASSWD"
-			MDP=$(sed -e 's/\$/\$$/g' /etc/apache2/.htpasswd_"$USERNAME" 2>/dev/null)
+			htpasswd -cbs "${CONFDIR}"/"${USERNAME}"/htpasswd "$USERNAME" "$PASSWD"
+			MDP=$(sed -e 's/\$/\$$/g' "$CONFDIR"/"$USERNAME"/htpasswd 2>/dev/null)
 			SHOME=/home/"$USERNAME"
 			export PASSWD
 			USERMULTI=-${USERNAME}
@@ -254,6 +248,7 @@ MANUSER () {
 			EOF
 			systemctl restart ssh
 			echo "${USERNAME}" >> "${CONFDIR}"/users.txt
+			ADDFTP
 			cat <<- EOF > "$CONFDIR"/"$USERNAME"/.env
 			SHOME=$SHOME
 			MDP=$MDP
@@ -294,6 +289,7 @@ MANUSER () {
 					mv /home/"${USERNAME}"/rutorrent/downloads/ /home/backup/"${USERNAME}-${DATE}"
 				fi
 				docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs
+				DELFTP
 				userdel -r -f "${USERNAME}"
 				sed -i "/^${USERNAME}$/d" "${CONFDIR}"/users.txt
 				rm -rf "${CONFDIR}"/"${USERNAME}"
@@ -331,6 +327,7 @@ MANAPPLI () {
 			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
 				"Sélectionner l'Utilisateur" 15 50 6 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
 			COMP1=0
 			TAB1=()
@@ -342,6 +339,7 @@ MANAPPLI () {
 			ACTION=$(whiptail --title "Choix des applications" --notags --checklist \
 				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
 			ACTION="$(echo $ACTION | tr -d '"')"
 			for APP in $(echo $ACTION)
 			do
@@ -380,6 +378,24 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
+					5)
+						APPD=jackett
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							ADDAPPLI "${APPD}"
+						fi
+						;;
+					6)
+						APPD=syncthing
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							CALCULPORT 22000 21027
+							echo "$PORT" >> "${CONFDIR}"/ports.txt
+							ADDAPPLI "${APPD}"
+						fi
+						;;
 					40)
 
 						;;
@@ -398,6 +414,7 @@ MANAPPLI () {
 			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
 				"Sélectionner l'Utilisateur" 15 50 6 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
 			COMP1=0
 			TAB1=()
 			for USERS1 in $(cat "${CONFDIR}"/"${USERNAME}"/appli.txt)
@@ -408,6 +425,7 @@ MANAPPLI () {
 			ACTION=$(whiptail --title "Choix des applications" --checklist \
 				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
 			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
 			ACTION="$(echo $ACTION | tr -d '"')"
 			for APP in $(echo $ACTION)
@@ -420,6 +438,7 @@ MANAPPLI () {
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
 						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
 						#RESTART="RESTART"
 						;;
 					medusa)
@@ -429,6 +448,7 @@ MANAPPLI () {
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
 						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
 						#RESTART="RESTART"
 						;;
 					heimdall)
@@ -438,6 +458,7 @@ MANAPPLI () {
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
 						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
 						#RESTART="RESTART"
 						;;
 					tautulli)
@@ -447,6 +468,7 @@ MANAPPLI () {
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
 						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
 						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
 						#RESTART="RESTART"
 						;;
 				esac
@@ -486,6 +508,7 @@ MANAPPLIADMIN () {
 			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
 			if  [ $? != 0 ] ; then
 				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
 				FQDN="${APPDMAJ}_FQDN"
 				CLAIM=$(whiptail --title "CLAIM" --inputbox "Un token est nécéssaire pour AUTHENTIFIER le serveur Plex .Pour obtenir un identifiant CLAIM, allez à cette adresse et copier le dans le terminal. \nhttps://www.plex.tv/claim/ " 12 70 claim- 3>&1 1>&2 2>&3)
 				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
@@ -504,6 +527,7 @@ MANAPPLIADMIN () {
 			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
 			if  [ $? != 0 ] ; then
 				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
 				FQDN="${APPDMAJ}_FQDN"
 				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
 				sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml

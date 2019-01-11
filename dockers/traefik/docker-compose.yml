@@ -41,6 +41,25 @@ services:
     networks:
       - proxy
 
+  ftp:
+    image: stilliard/pure-ftpd:hardened
+    container_name: "ftp"
+    restart: unless-stopped
+    environment:
+#      ADDED_FLAGS: "--tls=2"
+#      TLS_CN: "ratxabox"
+#      TLS_ORG: "ratxabox"
+#      TLS_C: "ratxabox"
+    volumes:
+      - @VOLUMES_TRAEFIK_PATH@/pure-ftp:/etc/pure-ftpd/passwd
+      - /home:/home/ftpusers
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    networks:
+      - proxy
+
+
 networks:
   proxy:
     external:

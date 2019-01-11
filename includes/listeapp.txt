@@ -1,1 +1,1 @@
-rutorrent medusa heimdall tautulli
+rutorrent medusa heimdall tautulli jackett syncthing

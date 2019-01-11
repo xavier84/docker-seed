@@ -1,0 +1,28 @@
+
+#startsyncthing
+  syncthing-@USERNAME@:
+    image: linuxserver/syncthing
+    container_name: syncthing-@USERNAME@
+    restart: unless-stopped
+    hostname: watcher-@USERNAME@
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@SYNCTHING_FQDN@
+      - traefik.port=8384
+      - traefik.docker.network=@PROXY_NETWORK@
+      - traefik.frontend.auth.basic=@MDP@
+    volumes:
+      - @SHOME@/docker/syncthing/config:/config
+      - @SHOME@/rutorrent/downloads:/mnt/data
+    ports:
+      - @PORT@:22000
+      - @PORT1@:21027/udp
+    environment:
+      - UMASK_SET=022
+      - /etc/localtime:/etc/localtime:ro
+      - TZ=Paris/Europe
+      - PUID=@PUID@
+      - PGID=@PGID@
+    networks:
+      - proxy
+#endsyncthing
