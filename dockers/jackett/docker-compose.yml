@@ -15,7 +15,7 @@
       - PUID=@PUID@
       - PGID=@PGID@
     volumes:
-      - @SHOME@/docker/Jackett/config:/config
+      - @SHOME@/docker/jackett/config:/config
     networks:
       - proxy
 #endjackett

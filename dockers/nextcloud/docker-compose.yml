@@ -1,0 +1,27 @@
+
+#startnextcloud
+  nextcloud:
+    image: wonderfall/nextcloud
+    restart: unless-stopped
+    container_name: nextcloud-@USERNAME@
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@NEXTCLOUD_FQDN@
+      - traefik.port=8888
+      - traefik.docker.network=@PROXY_NETWORK@
+    environment:
+      - UID=@PUID@
+      - GID=@PGID@
+      - ADMIN_USER=@USERNAME@
+      - ADMIN_PASSWORD=@USERNAME@
+      - DB_TYPE=sqlite
+      - DOMAIN=@NEXTCLOUD_FQDN@
+    volumes:
+      - @SHOME@/docker/nextcloud/data:/data
+      - @SHOME@/docker/nextcloud/config:/config
+      - @SHOME@/docker/nextcloud/apps:/apps2
+      - @SHOME@/docker/nextcloud/themes:/nextcloud/themes
+      - /home/@USERNAME@:/home/@USERNAME@
+    networks:
+      - proxy
+#endnextcloud
