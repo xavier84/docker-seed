@@ -1,6 +1,7 @@
 #!/bin/bash -i
 
 source /opt/seedbox/includes/functions.sh
+source /opt/seedbox/includes/functions-app.sh
 source /opt/seedbox/includes/variable.sh
 
 chmod 777 "${BASEDIR}"/logo.sh
@@ -47,6 +48,12 @@ MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 
 		;;
 		3)
 			MANAPPLIADMIN
+		;;
+		4)
+			MANOPTION
+		;;
+		5)
+			MANSAVE
 		;;
 		15)
 			exit 1

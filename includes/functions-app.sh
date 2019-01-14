@@ -89,6 +89,18 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
+					6)
+						APPD=nextcloud
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							USERNEXT=$(whiptail --title "Authentification nextcloud" --inputbox "Nom d'utilisateur pour l'Admin nextcloud :" 9 80 3>&1 1>&2 2>&3)
+							[[ "$?" != 0 ]] && exit 1;
+							MDPNEXT=$(whiptail --title "Authentification nextcloud" --passwordbox "Mot de passe pour l'Admin nextcloud :" 9 80 3>&1 1>&2 2>&3)
+							[[ "$?" != 0 ]] && exit 1;
+							ADDAPPLI "${APPD}"
+						fi
+						;;
 					40)
 
 						;;

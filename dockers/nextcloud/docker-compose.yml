@@ -12,8 +12,8 @@
     environment:
       - UID=@PUID@
       - GID=@PGID@
-      - ADMIN_USER=@USERNAME@
-      - ADMIN_PASSWORD=@USERNAME@
+      - ADMIN_USER=@USERNEXT@
+      - ADMIN_PASSWORD=@MDPNEXT@
       - DB_TYPE=sqlite
       - DOMAIN=@NEXTCLOUD_FQDN@
     volumes:

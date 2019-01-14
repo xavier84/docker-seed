@@ -21,6 +21,8 @@ sed -i \
 	-e "s|@PORT1@|$PORT1|g" \
 	-e "s|@MAIL@|$MAIL|g" \
 	-e "s|@USERNAME@|$USERNAME|g" \
+	-e "s|@USERNEXT@|$USERNEXT|g" \
+	-e "s|@MDPNEXT@|$MDPNEXT|g" \
 	-e "s|@PASSWD@|$PASSWD|g" \
 	-e "s|@DOMAIN@|$DOMAIN|g" \
 	-e "s|@PASS@|$PASS|g" \
@@ -382,4 +384,64 @@ MANAPPLIADMIN () {
 	if  [ "$RESTART" = RESTART ] ; then
 		docker-compose -f "${CONFDIR}"/admin/docker-compose.yml up -d
 	fi
+}
+
+MANOPTION () {
+		MANAGER=$(whiptail --title "Menu options" --menu "Manager options:" 18 80 10 \
+		"1" "Creation utilisateur" \
+		"2" "Suppression utilisateur" \
+		"3" "Modification mot de passe" \
+		"4" "Retour"  3>&1 1>&2 2>&3)
+	[[ "$?" != 0 ]] && exit 1;
+	case $MANAGER in
+		1)
+			DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
+
+
+		;;
+		2)
+			if [[ -s "${CONFDIR}"/users.txt ]]; then
+				COMP=0
+				TAB=()
+				for USERS in $(cat "${CONFDIR}"/users.txt)
+				do
+					COMP=$(($COMP+1))
+					TAB+=( ${USERS//\"} ${COMP//\"} )
+				done
+				USERNAME=$(whiptail --title "Suppression" --noitem --menu \
+					"Sélectionner l'Utilisateur" 15 50 6 \
+					"${TAB[@]}"  3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				DATE="$(date '+%d-%m-%y_%Hh%Mm%Ss')"
+				if (whiptail --title "Suppression" --yesno "Veux-tu gardé le dossier: /home/"${USERNAME}"/rutorrent/downloads ? \n\n si "oui" il sera deplacé dans /home/backup/"${USERNAME}-${DATE}"" 15 60 3>&1 1>&2 2>&3); then
+					SAVE=oui
+				else
+					SAVE=non
+				fi
+				if  [[ "$SAVE" = "oui" ]]; then
+					mkdir -p /home/backup/"${USERNAME}-${DATE}"
+					mv /home/"${USERNAME}"/rutorrent/downloads/ /home/backup/"${USERNAME}-${DATE}"
+				fi
+				docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs
+				DELFTP
+				userdel -r -f "${USERNAME}"
+				sed -i "/^${USERNAME}$/d" "${CONFDIR}"/users.txt
+				rm -rf "${CONFDIR}"/"${USERNAME}"
+			else
+				whiptail --title "user" --msgbox "Aucun uilisateur" 8 60
+			fi
+		;;
+		3)
+			DEV
+		;;
+		4)
+			return
+		;;
+	esac
+}
+
+MANSAVE () {
+	HISTO=$(wc -l < "$CONFDIR"/ports.txt)
+	PORT=$(( $(($1))+HISTO ))
+	PORT1=$(( $(($2))+HISTO ))
 }
