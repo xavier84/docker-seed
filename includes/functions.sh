@@ -388,48 +388,47 @@ MANAPPLIADMIN () {
 
 MANOPTION () {
 		MANAGER=$(whiptail --title "Menu options" --menu "Manager options:" 18 80 10 \
-		"1" "Creation utilisateur" \
+		"1" "mount dossier home dans nextcloud" \
 		"2" "Suppression utilisateur" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
 	[[ "$?" != 0 ]] && exit 1;
 	case $MANAGER in
 		1)
-			DOMAIN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\nles sous domaine seront gere plus tard :" 9 70 exemple.fr 3>&1 1>&2 2>&3)
-
-
-		;;
-		2)
-			if [[ -s "${CONFDIR}"/users.txt ]]; then
-				COMP=0
-				TAB=()
-				for USERS in $(cat "${CONFDIR}"/users.txt)
+			COMP=0
+			TAB=()
+			for USERS in $(cat "${CONFDIR}"/users.txt)
+			do
+				COMP=$(($COMP+1))
+				TAB+=( ${USERS//\"} ${COMP//\"} )
+			done
+			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
+				"Sélectionner l'Utilisateur" 15 50 6 \
+				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
+			if docker ps  | grep -q nextcloud-${USERNAME}; then
+				COMP1=0
+				FIN=0
+				while [ "$FIN" != "1" ]
 				do
-					COMP=$(($COMP+1))
-					TAB+=( ${USERS//\"} ${COMP//\"} )
-				done
-				USERNAME=$(whiptail --title "Suppression" --noitem --menu \
-					"Sélectionner l'Utilisateur" 15 50 6 \
-					"${TAB[@]}"  3>&1 1>&2 2>&3)
-				[[ "$?" != 0 ]] && exit 1;
-				DATE="$(date '+%d-%m-%y_%Hh%Mm%Ss')"
-				if (whiptail --title "Suppression" --yesno "Veux-tu gardé le dossier: /home/"${USERNAME}"/rutorrent/downloads ? \n\n si "oui" il sera deplacé dans /home/backup/"${USERNAME}-${DATE}"" 15 60 3>&1 1>&2 2>&3); then
-					SAVE=oui
+				if docker exec -t nextcloud-${USERNAME} su -c "ps aux | grep -v grep | grep nginx"
+				then
+					sleep 5
+					docker exec -t nextcloud-${USERNAME} su -c "adduser -S ${USERNAME} -u 1000"
+					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ files:scan --all"
+					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ app:list"
+					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ app:enable files_external"
+					FIN=1
 				else
-					SAVE=non
+					COMP1=$(($COMP1+1))
+					echo -n "$COMP1$TMP+*"
+					sleep 1
 				fi
-				if  [[ "$SAVE" = "oui" ]]; then
-					mkdir -p /home/backup/"${USERNAME}-${DATE}"
-					mv /home/"${USERNAME}"/rutorrent/downloads/ /home/backup/"${USERNAME}-${DATE}"
-				fi
-				docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs
-				DELFTP
-				userdel -r -f "${USERNAME}"
-				sed -i "/^${USERNAME}$/d" "${CONFDIR}"/users.txt
-				rm -rf "${CONFDIR}"/"${USERNAME}"
+				done
 			else
-				whiptail --title "user" --msgbox "Aucun uilisateur" 8 60
+				whiptail --title "nextcloud" --msgbox "Pas de nextcloud pour ${USERNAME}" 8 70
 			fi
+
 		;;
 		3)
 			DEV

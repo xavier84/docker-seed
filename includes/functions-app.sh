@@ -89,7 +89,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					6)
+					7)
 						APPD=nextcloud
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
