@@ -246,7 +246,7 @@ MANUSER () {
 			export PASSWD
 			USERMULTI=-${USERNAME}
 			PUID=$(id -u $USERNAME)
-			PGID=$(id -u $USERNAME)
+			PGID=$(id -g $USERNAME)
 			cat <<- EOF >> /etc/ssh/sshd_config
 				Match User ${USERNAME}
 				ChrootDirectory /home/${USERNAME}
@@ -388,7 +388,7 @@ MANAPPLIADMIN () {
 
 MANOPTION () {
 		MANAGER=$(whiptail --title "Menu options" --menu "Manager options:" 18 80 10 \
-		"1" "mount dossier home dans nextcloud" \
+		"1" "Mount dossier home dans nextcloud" \
 		"2" "Suppression utilisateur" \
 		"3" "Modification mot de passe" \
 		"4" "Retour"  3>&1 1>&2 2>&3)
@@ -406,6 +406,7 @@ MANOPTION () {
 				"Sélectionner l'Utilisateur" 15 50 6 \
 				"${TAB[@]}"  3>&1 1>&2 2>&3)
 			[[ "$?" != 0 ]] && exit 1;
+			export $(xargs <"${CONFDIR}"/"${USERNAME}"/.env)
 			if docker ps  | grep -q nextcloud-${USERNAME}; then
 				COMP1=0
 				FIN=0
@@ -414,10 +415,14 @@ MANOPTION () {
 				if docker exec -t nextcloud-${USERNAME} su -c "ps aux | grep -v grep | grep nginx"
 				then
 					sleep 5
-					docker exec -t nextcloud-${USERNAME} su -c "adduser -S ${USERNAME} -u 1000"
+					docker exec -t nextcloud-${USERNAME} su -c "adduser -S ${USERNAME} -u ${PUID}"
 					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ files:scan --all"
 					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ app:list"
 					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ app:enable files_external"
+					cp ${BASEDIRDOCKER}/nextcloud/mount.json /home/"${USERNAME}"/docker/nextcloud/apps/mount-${USERNAME}.json
+					SEDDOCKER /home/"${USERNAME}"/docker/nextcloud/apps/mount-${USERNAME}.json
+					docker exec -t nextcloud-${USERNAME} su -s /bin/sh ${USERNAME} -c "/usr/bin/php /nextcloud/occ files_external:import /apps2/mount-${USERNAME}.json"
+					rm -f /home/"${USERNAME}"/docker/nextcloud/apps/mount-${USERNAME}.json
 					FIN=1
 				else
 					COMP1=$(($COMP1+1))
