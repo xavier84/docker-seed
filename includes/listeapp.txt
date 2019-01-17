@@ -1,1 +1,1 @@
-rutorrent medusa heimdall tautulli jackett syncthing nextcloud
+rutorrent medusa heimdall tautulli jackett syncthing nextcloud hydra

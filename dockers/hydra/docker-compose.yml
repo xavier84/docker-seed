@@ -1,0 +1,21 @@
+
+#starthydra
+  hydra-@USERNAME@:
+    image: linuxserver/hydra
+    container_name: hydra-@USERNAME@
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@HYDRA_FQDN@
+      - traefik.port=5075
+      - traefik.docker.network=@PROXY_NETWORK@
+      - traefik.frontend.auth.basic=@MDP@
+    environment:
+      - PUID=@PUID@
+      - PGID=@PGID@
+    networks:
+      - proxy
+    volumes:
+      - @SHOME@/docker/hydra:/config
+      - @SHOME@/rutorrent/downloads:/downloads
+#endhydra
