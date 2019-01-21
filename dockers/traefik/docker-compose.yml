@@ -16,6 +16,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - @VOLUMES_TRAEFIK_PATH@/traefik.toml:/traefik.toml:ro
       - @VOLUMES_TRAEFIK_PATH@/certs:/etc/traefik/acme:rw
+      - @VOLUMES_TRAEFIK_PATH@/tmp:/tmp
       - /var/log/traefik:/var/log
     ports:
       - "80:80"

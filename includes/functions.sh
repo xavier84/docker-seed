@@ -314,10 +314,11 @@ MANUSER () {
 MANAPPLIADMIN () {
 	MANAGER=$(whiptail --title "Seedbox Menu" --menu "Manager applications admin:" 18 80 10 \
 		"1" "Plex" \
-		"2" "Portainer" \
-		"3" "Watchtower" \
-		"4" "Modification mot de passe" \
-		"5" "Retour"  3>&1 1>&2 2>&3)
+		"2" "Tautulli" \
+		"3" "Portainer" \
+		"4" "Watchtower" \
+		"5" "Phpmyadmin + MariaDb" \
+		"6" "Retour"  3>&1 1>&2 2>&3)
 	[[ "$?" != 0 ]] && exit 1;
 	RESTART=""
 	if [ ! -f "$CONFDIR"/admin/docker-compose.yml ]; then
@@ -346,6 +347,29 @@ MANAPPLIADMIN () {
 			fi
 		;;
 		2)
+			APPD=tautulli
+			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
+			if  [ $? != 0 ] ; then
+				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				USERNAME=$(whiptail --title "Authentification tautulli" --inputbox "Nom d'utilisateur pour l'authentification tautulli\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				PASSWD=$(whiptail --title "Authentification tautulli" --passwordbox "Mot de passe pour l'authentification tautulli\ninterface web :" 9 80 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				htpasswd -cbs "${CONFDIR}"/admin/htpasswd "$USERNAME" "$PASSWD"
+				MDP=$(sed -e 's/\$/\$$/g' "$CONFDIR"/admin/htpasswd 2>/dev/null)
+				FQDN="${APPDMAJ}_FQDN"
+				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
+				SEDDOCKER "${CONFDIR}"/admin/docker-compose.yml
+				echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
+				echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
+				RESTART="RESTART"
+			else
+				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
+			fi
+		;;
+		3)
 			APPD=portainer
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
@@ -362,7 +386,7 @@ MANAPPLIADMIN () {
 				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
 			fi
 		;;
-		3)
+		4)
 			APPD=watchtower
 			APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 			grep ^${APPD}$ "${CONFDIR}"/admin/appli.txt
@@ -374,7 +398,7 @@ MANAPPLIADMIN () {
 				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50
 			fi
 		;;
-		4)
+		5)
 			DEV
 		;;
 		5)

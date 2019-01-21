@@ -1,0 +1,23 @@
+
+#startpyload
+  pyload-@USERNAME@:
+    container_name: pyload-@USERNAME@
+    image: writl/pyload
+    restart: unless-stopped
+    hostname: pyload
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@PYLOAD_FQDN@
+      - traefik.port=8000
+      - traefik.docker.network=@PROXY_NETWORK@
+    environment:
+      - /etc/localtime:/etc/localtime:ro
+      - TZ=Paris/Europe
+      - PUID=@PUID@
+      - PGID=@PGID@
+    volumes:
+      - @SHOME@/rutorrent/downloads/pyload:/opt/pyload/Downloads:rw
+      - @SHOME@/docker/pyload/config:/opt/pyload/pyload-config:rw
+    networks:
+      - proxy
+#endpyload

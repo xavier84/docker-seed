@@ -1,7 +1,7 @@
 
 #starttautulli
-  tautulli-@USERNAME@:
-    container_name: tautulli-@USERNAME@
+  tautulli:
+    container_name: tautulli
     image: tautulli/tautulli
     restart: unless-stopped
     hostname: tautulli
@@ -9,14 +9,10 @@
       - traefik.enable=true
       - traefik.frontend.rule=Host:@TAUTULLI_FQDN@
       - traefik.port=8181
-      - traefik.docker.network=@PROXY_NETWORK@
+      - traefik.docker.network=traefik_proxy
       - traefik.frontend.auth.basic=@MDP@
-    environment:
-      - TZ=Paris/Europe
-      - PUID=@PUID@
-      - PGID=@PGID@
     volumes:
-      - @SHOME@/docker/tautulli/config:/config
+      - /opt/seedbox/conf/admin/docker/tautulli/config:/config
     networks:
       - proxy
 #endtautulli

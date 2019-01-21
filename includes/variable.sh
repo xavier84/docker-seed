@@ -9,7 +9,7 @@ CPURPLE="${CSI}1;35m"
 CCYAN="${CSI}1;36m"
 
 #liste des appliquetions
-LISTAPP="pyload radarr jackett lidarr nextcloud"
+LISTAPP=" radarr lidarr"
 #variables
 BASEDIR="/opt/seedbox"
 CONFDIR="${BASEDIR}/conf"

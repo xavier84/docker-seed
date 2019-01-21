@@ -64,7 +64,7 @@ MANAPPLI () {
 						fi
 						;;
 					4)
-						APPD=tautulli
+						APPD=pyload
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
 						if  [ "$INSTALL" = INSTALL ] ; then
@@ -174,8 +174,8 @@ MANAPPLI () {
 						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
 						#RESTART="RESTART"
 						;;
-					tautulli)
-						APPD=tautulli
+					pyload)
+						APPD=pyload
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
