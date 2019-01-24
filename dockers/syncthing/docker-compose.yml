@@ -13,7 +13,7 @@
       - traefik.frontend.auth.basic=@MDP@
     volumes:
       - @SHOME@/docker/syncthing/config:/config
-      - @SHOME@/rutorrent/downloads:/mnt/data
+      - @SHOME@/rutorrent/downloads:/sync
     ports:
       - @PORT@:22000
       - @PORT1@:21027/udp

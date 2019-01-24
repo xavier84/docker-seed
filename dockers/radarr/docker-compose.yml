@@ -1,0 +1,25 @@
+
+#startradarr
+  radarr-@USERNAME@:
+    container_name: radarr-@USERNAME@
+    image: linuxserver/radarr
+    restart: unless-stopped
+    hostname: radarr
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@RADARR_FQDN@
+      - traefik.port=7878
+      - traefik.docker.network=@PROXY_NETWORK@
+      - traefik.frontend.auth.basic=@MDP@
+    environment:
+      - /etc/localtime:/etc/localtime:ro
+      - TZ=Paris/Europe
+      - PUID=@PUID@
+      - PGID=@PGID@
+    volumes:
+      - @SHOME@/docker/radarr/config:/config
+      - @SHOME@/rutorrent/downloads:/downloads
+      - @SHOME@/Medias/Movies:/movies
+    networks:
+      - proxy
+#endradarr

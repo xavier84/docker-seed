@@ -109,6 +109,14 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
+					9)
+						APPD=radarr
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							ADDAPPLI "${APPD}"
+						fi
+						;;
 					40)
 
 						;;
@@ -216,6 +224,16 @@ MANAPPLI () {
 						;;
 					hydra)
 						APPD=hydra
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
+						#RESTART="RESTART"
+						;;
+					radarr)
+						APPD=radarr
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt

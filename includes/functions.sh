@@ -303,7 +303,27 @@ MANUSER () {
 			fi
 		;;
 		3)
-			DEV
+			COMP=0
+			TAB=()
+			for USERS in $(cat "${CONFDIR}"/users.txt)
+			do
+				COMP=$(($COMP+1))
+				TAB+=( ${USERS//\"} ${COMP//\"} )
+			done
+			USERNAME=$(whiptail --title "Gestion des applications" --noitem --menu \
+				"Sélectionner l'Utilisateur" 15 50 6 \
+				"${TAB[@]}"  3>&1 1>&2 2>&3)
+			[[ "$?" != 0 ]] && exit 1;
+			PASSWD=$(whiptail --title "Authentification Seedbox" --passwordbox "Mot de passe pour l'authentification Seedbox\ninterface web :" 9 80 3>&1 1>&2 2>&3)
+			htpasswd -cbs "${CONFDIR}"/"${USERNAME}"/htpasswd "$USERNAME" "$PASSWD"
+			MDP=$(sed -e 's/\$/\$$/g' "$CONFDIR"/"$USERNAME"/htpasswd 2>/dev/null)
+			#sed -i "s|PASSWD=\(.*\)|PASSWD=audrey|g;" .env
+			sed -i "s|PASSWD=\(.*\)|PASSWD=${PASSWD}|g;" "$CONFDIR"/"$USERNAME"/.env
+			sed -i "s|MDP=\(.*\)|MDP=${MDP}|g;" "$CONFDIR"/"$USERNAME"/.env
+			sed -i "s|traefik.frontend.auth.basic=\(.*\)|traefik.frontend.auth.basic=${MDP}|g;" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs
+			docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml up -d
+
 		;;
 		4)
 			return
