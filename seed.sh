@@ -2,6 +2,7 @@
 
 source /opt/seedbox/includes/functions.sh
 source /opt/seedbox/includes/functions-app.sh
+source /opt/seedbox/includes/functions-option.sh
 source /opt/seedbox/includes/variable.sh
 
 chmod 777 "${BASEDIR}"/logo.sh

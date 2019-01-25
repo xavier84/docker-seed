@@ -117,6 +117,14 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
+					10)
+						APPD=lidarr
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						CHECKAPPLI "${USERNAME}" "${APPD}"
+						if  [ "$INSTALL" = INSTALL ] ; then
+							ADDAPPLI "${APPD}"
+						fi
+						;;
 					40)
 
 						;;

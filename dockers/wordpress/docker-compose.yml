@@ -1,0 +1,37 @@
+
+#startwordpress
+  wordpress-@USERNAME@:
+    image: wordpress
+    container_name: wordpress-@USERNAME@
+    restart: always
+    hostname: wordpress
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:@WORDPRESS_FQDN@
+      - traefik.port=80
+      - traefik.docker.network=@PROXY_NETWORK@
+    volumes:
+      - @SHOME@/docker/wordpress/www:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: dbwp-@USERNAME@
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: @MDPSQLWP@
+      WORDPRESS_DB_NAME: wpdb
+    networks:
+      - proxy
+
+  dbwp-@USERNAME@:
+    image: mysql:5.7
+    restart: always
+    container_name: dbwp-@USERNAME@
+    hostname: db
+    volumes:
+    - @SHOME@/docker/wordpress/sql:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: wpdb
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: @MDPSQLWP@
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    networks:
+      - proxy
+#endwordpress
