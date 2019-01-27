@@ -13,6 +13,7 @@
       - traefik.frontend.auth.basic=@MDP@
     volumes:
       - /opt/seedbox/conf/admin/docker/tautulli/config:/config
+      - /opt/seedbox/conf/admin/plex/Library/Application Support/Plex Media Server/Logs:/plex_logs:ro
     networks:
       - proxy
 #endtautulli

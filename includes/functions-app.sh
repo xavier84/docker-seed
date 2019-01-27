@@ -27,9 +27,9 @@ MANAPPLI () {
 			for LAPP1 in $(cat "${BASEDIR}"/includes/listeapp.txt)
 			do
 				COMP1=$(($COMP1+1))
-				TAB1+=( ${COMP1//\"} ${LAPP1//\"} OFF)
+				TAB1+=( ${LAPP1//\"} ${COMP1//\"} OFF)
 			done
-			ACTION=$(whiptail --title "Choix des applications" --notags --checklist \
+			ACTION=$(whiptail --title "Choix des applications" --checklist \
 				"Utiliser \"la barre espace\" pour selectionner une/des application/s, puis TAB ou entrer pour valider" 28 60 17 \
 				"${TAB1[@]}"  3>&1 1>&2 2>&3)
 			[[ "$?" != 0 ]] && exit 1;
@@ -37,7 +37,7 @@ MANAPPLI () {
 			for APP in $(echo $ACTION)
 			do
 				case $APP in
-					1)
+				rutorrent)
 						APPD=rutorrent
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -47,7 +47,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					2)
+				medusa)
 						APPD=medusa
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -55,7 +55,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					3)
+				heimdall)
 						APPD=heimdall
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -63,7 +63,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					4)
+				pyload)
 						APPD=pyload
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -71,7 +71,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					5)
+				jackett)
 						APPD=jackett
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -79,7 +79,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					6)
+				syncthing)
 						APPD=syncthing
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -89,7 +89,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					7)
+				nextcloud)
 						APPD=nextcloud
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -101,7 +101,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					8)
+				hydra)
 						APPD=hydra
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -109,7 +109,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					9)
+				radarr)
 						APPD=radarr
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -117,7 +117,7 @@ MANAPPLI () {
 							ADDAPPLI "${APPD}"
 						fi
 						;;
-					10)
+				lidarr)
 						APPD=lidarr
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						CHECKAPPLI "${USERNAME}" "${APPD}"
@@ -242,6 +242,26 @@ MANAPPLI () {
 						;;
 					radarr)
 						APPD=radarr
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
+						#RESTART="RESTART"
+						;;
+					lidarr)
+						APPD=lidarr
+						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
+						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
+						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
+						sed -i "/^${APPDMAJ_FQDN}/d" "${CONFDIR}"/"${USERNAME}"/url.txt
+						sed -i "/#start"$APPD"/,/#end"$APPD"/d" "${CONFDIR}"/"${USERNAME}"/docker-compose.yml
+						rm -rf /home/"${USERNAME}"/docker/"${APPD}"
+						#RESTART="RESTART"
+						;;
+					wordpress)
+						APPD=wordpress
 						APPDMAJ=$(echo "$APPD" | tr "[:lower:]" "[:upper:]")
 						docker-compose -f "${CONFDIR}"/"${USERNAME}"/docker-compose.yml rm -fs "${APPD}"-"${USERNAME}"
 						sed -i "/^${APPD}$/d" "${CONFDIR}"/"${USERNAME}"/appli.txt
