@@ -46,7 +46,7 @@ services:
     image: stilliard/pure-ftpd:hardened
     container_name: "ftp"
     restart: unless-stopped
-    environment:
+#    environment:
 #      ADDED_FLAGS: "--tls=2"
 #      TLS_CN: "ratxabox"
 #      TLS_ORG: "ratxabox"

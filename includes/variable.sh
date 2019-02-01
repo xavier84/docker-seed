@@ -8,8 +8,6 @@ CGREEN="${CSI}1;32m"
 CPURPLE="${CSI}1;35m"
 CCYAN="${CSI}1;36m"
 
-#liste des appliquetions
-LISTAPP=" radarr lidarr"
 #variables
 BASEDIR="/opt/seedbox"
 CONFDIR="${BASEDIR}/conf"

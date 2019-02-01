@@ -13,6 +13,7 @@ MANAPPLIADMIN () {
 	export $(xargs <"${VOLUMES_TRAEFIK_PATH}"/domain)
 	RESTART=""
 	USERNAME=admin
+	PROXY_NETWORK=traefik_proxy
 	if [ ! -f "$CONFDIR"/admin/docker-compose.yml ]; then
 				mkdir -p "$CONFDIR"/admin
 				touch "${CONFDIR}"/admin/appli.txt
@@ -68,11 +69,18 @@ MANAPPLIADMIN () {
 			if  [ $? != 0 ] ; then
 				FQDNN=$(whiptail --title "Nom de domaine" --inputbox "Nom de domaine\n${APPD} :" 9 70 ${APPD}.${DOMAIN} 3>&1 1>&2 2>&3)
 				[[ "$?" != 0 ]] && exit 1;
+				USERNAME=$(whiptail --title "Authentification portainer" --inputbox "Nom d'utilisateur pour l'authentification portainer\ninterface web  :" 9 80 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				PASSWD=$(whiptail --title "Authentification portainer" --passwordbox "Mot de passe pour l'authentification portainer\ninterface web :" 9 80 3>&1 1>&2 2>&3)
+				[[ "$?" != 0 ]] && exit 1;
+				htpasswd -cbs "${CONFDIR}"/admin/htpasswd "$USERNAME" "$PASSWD"
+				MDP=$(sed -e 's/\$/\$$/g' "$CONFDIR"/admin/htpasswd 2>/dev/null)
 				FQDN="${APPDMAJ}_FQDN"
 				sed -i.bak '/services/ r '${BASEDIRDOCKER}/${APPD}'/docker-compose.yml' "${CONFDIR}"/admin/docker-compose.yml
-				sed -i "s|@${FQDN}@|$FQDNN|g;" "${CONFDIR}"/admin/docker-compose.yml
+				SEDDOCKER "${CONFDIR}"/admin/docker-compose.yml
 				echo ${APPD} >> "${CONFDIR}"/admin/appli.txt
 				echo ${FQDN}=${FQDNN} >> "${CONFDIR}"/admin/url.txt
+				USERNAME=admin
 				RESTART="RESTART"
 			else
 				whiptail --title "admin" --msgbox "${APPDMAJ} deja installer" 8 50

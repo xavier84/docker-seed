@@ -57,6 +57,9 @@ MANAGER=$(whiptail --title "Seedbox Menu" --menu "bienvenue sur le manager:" 18 
 		5)
 			MANSAVE
 		;;
+		6)
+			MANDEL
+		;;
 		15)
 			exit 1
 		;;

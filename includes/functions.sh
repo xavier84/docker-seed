@@ -339,3 +339,36 @@ MANUSER () {
 MANSAVE () {
 	DEV
 }
+
+MANDEL () {
+	docker stop $(docker ps -a -q)
+	docker rm $(docker ps -a -q)
+	if [[ -s "${CONFDIR}"/users.txt ]]; then
+		for USERNAME in $(cat "${CONFDIR}"/users.txt)
+		do
+			DATE="$(date '+%d-%m-%y_%Hh%Mm%Ss')"
+			if (whiptail --title "Suppression" --yesno "Veux-tu gardé le dossier: /home/"${USERNAME}"/rutorrent/downloads ? \n\n si "oui" il sera deplacé dans /home/backup/"${USERNAME}-${DATE}"" 15 60 3>&1 1>&2 2>&3); then
+				SAVE=oui
+			else
+				SAVE=non
+			fi
+			if  [[ "$SAVE" = "oui" ]]; then
+				mkdir -p /home/backup/"${USERNAME}-${DATE}"
+				mv /home/"${USERNAME}"/rutorrent/downloads/ /home/backup/"${USERNAME}-${DATE}"
+			fi
+			userdel -r -f "${USERNAME}"
+			rm -rf "${CONFDIR}"/"${USERNAME}"
+		done
+	else
+		whiptail --title "user" --msgbox "Aucun uilisateur" 8 60
+	fi
+	cd /opt
+	rm -rf ${VOLUMES_TRAEFIK_PATH} ${BASEDIR}
+	apt-get remove --purge docker-ce*
+	rm -rf /var/lib/docker
+	rm -rf /etc/docker
+	rm /etc/systemd/system/docker.service
+	rm /etc/init/d/docker
+	apt-get autoremove && apt-get autoclean
+	exit 1
+}
