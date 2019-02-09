@@ -1,4 +1,6 @@
-# RatXaDoc
+# RatXaDock
+
+![](https://img.shields.io/github/repo-size/xavier84/docker-seed.svg?style=plastic&logo=Linux)
 
 Seedbox .
 

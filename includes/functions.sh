@@ -70,7 +70,7 @@ DEV () {
 
 ADDFTP () {
 	docker exec -i ftp /bin/bash << EOX
-	( echo ${PASSWD} ; echo ${PASSWD} )|pure-pw useradd ${USERNAME} -f /etc/pure-ftpd/passwd/pureftpd.passwd -m -u ftpuser -d /home/ftpusers/${USERNAME}
+	( echo ${PASSWD} ; echo ${PASSWD} )|pure-pw useradd ${USERNAME} -f /etc/pure-ftpd/passwd/pureftpd.passwd -m -u ${PUID} -g ${PGID} -d /home/ftpusers/${USERNAME}
 EOX
 }
 
@@ -203,7 +203,7 @@ INSTALLDOCKER () {
 	sed -i "s/Subsystem[[:blank:]]sftp[[:blank:]]\/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp/g;" /etc/ssh/sshd_config
 	sed -i "s/UsePAM/#UsePAM/g;" /etc/ssh/sshd_config
 	systemctl restart ssh
-	echo 'export PATH=$PATH:/opt/seedbox' >> /home/user/.bashrc
+	echo 'export PATH=$PATH:/opt/seedbox' >> /root/.bashrc
 	source /root/.bashrc
 
 }
